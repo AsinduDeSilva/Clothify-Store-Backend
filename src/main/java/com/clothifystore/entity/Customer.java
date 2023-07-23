@@ -3,11 +3,8 @@ package com.clothifystore.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.properties.ConstructorBinding;
 
 import javax.persistence.*;
-import java.util.List;
 
 @Entity
 @NoArgsConstructor
@@ -23,10 +20,6 @@ public class Customer {
     private String lastName;
     private String address;
     private String mobileNo;
-
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "CustomerID", referencedColumnName = "customerID")
-    private List<Order> orderList;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "userId")

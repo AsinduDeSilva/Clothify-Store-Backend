@@ -17,7 +17,7 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int orderID;
-    private String date;
+    private String dateAndTime;
     private String status;
     private String receiverAddress;
     private String receiverMobileNo;

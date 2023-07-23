@@ -46,13 +46,10 @@ public class CustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID, @RequestBody Customer customer){
         if(customerRepo.existsById(customerID)){
-            Customer customer1 = customerRepo.findByCustomerID(customerID);
-            customer.setCustomerID(customer1.getCustomerID());
-            customer.setOrderList(customer1.getOrderList());
-            customer.getUser().setRole(customer1.getUser().getRole());
-            customer.getUser().setUserId(customer1.getUser().getUserId());
+            customer.setCustomerID(customerID);
+            customer.getUser().setRole("ROLE_CUSTOMER");
+            customer.getUser().setUserId(customerRepo.findByCustomerID(customerID).getUser().getUserId());
             customerRepo.save(customer);
-
             return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));
         }
         return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
