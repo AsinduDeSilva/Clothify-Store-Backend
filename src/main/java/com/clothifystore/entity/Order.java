@@ -22,7 +22,7 @@ public class Order {
     private String receiverAddress;
     private String receiverMobileNo;
     private String receiverName;
-    private String customerID;
+    private int customerID;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "orderID", referencedColumnName = "orderID")
