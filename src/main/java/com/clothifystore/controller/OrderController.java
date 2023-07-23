@@ -31,7 +31,7 @@ public class OrderController {
                 Product product = productRepo.findById(orderDetail.getProductID()).get();
                 int restQty;
                 switch (orderDetail.getSize()){
-                    case "S" :
+                    case SMALL:
                         restQty = product.getSmallQty()-orderDetail.getQuantity();
                         if(restQty<0){
                             return ResponseEntity.badRequest().body(
@@ -41,7 +41,7 @@ public class OrderController {
                             product.setSmallQty(restQty);
                         }
                         break;
-                    case "M" :
+                    case MEDIUM:
                         restQty = product.getMediumQty()-orderDetail.getQuantity();
                         if(restQty<0){
                             return ResponseEntity.badRequest().body(
@@ -51,7 +51,7 @@ public class OrderController {
                             product.setMediumQty(restQty);
                         }
                         break;
-                    case "L" :
+                    case LARGE:
                         restQty = product.getLargeQty()-orderDetail.getQuantity();
                         if(restQty<0){
                             return ResponseEntity.badRequest().body(
@@ -68,6 +68,7 @@ public class OrderController {
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Some products not found"));
             }
         }
+        order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
         return ResponseEntity.ok(new CrudResponse(true, "Order placed"));
 
@@ -114,16 +115,14 @@ public class OrderController {
     @PutMapping("/{id}/{status}")
     public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id")int orderID, @PathVariable(value = "status")int status){
         if(orderRepo.findById(orderID).isPresent()){
-            String sts;
+            Order order = orderRepo.findById(orderID).get();
             switch (status){
-                case 0 : sts = OrderStatusTypes.PENDING.toString(); break;
-                case 1 : sts = OrderStatusTypes.PROCESSING.toString(); break;
-                case 2 : sts = OrderStatusTypes.DELIVERED.toString(); break;
-                case 3 : sts = OrderStatusTypes.CANCELLED.toString(); break;
+                case 0 : order.setStatus(OrderStatusTypes.PENDING); break;
+                case 1 : order.setStatus(OrderStatusTypes.PROCESSING); break;
+                case 2 : order.setStatus(OrderStatusTypes.DELIVERED); break;
+                case 3 : order.setStatus(OrderStatusTypes.CANCELLED); break;
                 default: return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
             }
-            Order order = orderRepo.findById(orderID).get();
-            order.setStatus(sts);
             orderRepo.save(order);
             return ResponseEntity.ok(new CrudResponse(true, "Order Updated"));
         }

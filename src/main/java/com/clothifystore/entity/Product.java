@@ -1,5 +1,6 @@
 package com.clothifystore.entity;
 
+import com.clothifystore.enums.ProductCategories;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,6 +24,6 @@ public class Product {
     private int largeQty;
     private int mediumQty;
     private int smallQty;
-    private String category;
+    private ProductCategories category;
     private String imgFileName;
 }

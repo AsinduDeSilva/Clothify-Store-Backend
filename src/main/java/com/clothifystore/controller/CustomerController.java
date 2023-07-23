@@ -2,6 +2,7 @@ package com.clothifystore.controller;
 
 import com.clothifystore.dto.response.CrudResponse;
 import com.clothifystore.entity.Customer;
+import com.clothifystore.enums.UserRoles;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ public class CustomerController {
     @PostMapping
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
         if(userRepo.countByUsername(customer.getUser().getUsername())==0 && userRepo.countByEmail(customer.getUser().getEmail())==0) {
-            customer.getUser().setRole("ROLE_CUSTOMER");
+            customer.getUser().setRole(UserRoles.ROLE_CUSTOMER.toString());
             customerRepo.save(customer);
             return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
         }
@@ -31,7 +32,7 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCustomer(@PathVariable (value = "id") int customerID){
+    public ResponseEntity<?> getCustomer(@PathVariable(value = "id") int customerID){
         if(customerRepo.existsById(customerID)){
             return ResponseEntity.ok(customerRepo.findByCustomerID(customerID));
         }
@@ -47,7 +48,7 @@ public class CustomerController {
     public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID, @RequestBody Customer customer){
         if(customerRepo.existsById(customerID)){
             customer.setCustomerID(customerID);
-            customer.getUser().setRole("ROLE_CUSTOMER");
+            customer.getUser().setRole(UserRoles.ROLE_CUSTOMER.toString());
             customer.getUser().setUserId(customerRepo.findByCustomerID(customerID).getUser().getUserId());
             customerRepo.save(customer);
             return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));

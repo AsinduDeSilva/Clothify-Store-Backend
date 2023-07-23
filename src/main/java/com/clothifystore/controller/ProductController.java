@@ -3,6 +3,7 @@ package com.clothifystore.controller;
 import com.clothifystore.dto.request.ProductRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
 import com.clothifystore.entity.Product;
+import com.clothifystore.enums.ProductCategories;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -45,24 +46,20 @@ public class ProductController {
         return ResponseEntity.ok(productRepo.findAll());
     }
 
-    @GetMapping("/men")
-    public ResponseEntity<List<Product>> getAllMenProducts(){
-        return ResponseEntity.ok(productRepo.findByCategory("Men"));
-    }
-
-    @GetMapping("/women")
-    public ResponseEntity<List<Product>> getAllWomenProducts(){
-        return ResponseEntity.ok(productRepo.findByCategory("Women"));
-    }
-
-    @GetMapping("/kids")
-    public ResponseEntity<List<Product>> getAllKidsProducts(){
-        return ResponseEntity.ok(productRepo.findByCategory("Kids"));
-    }
-
-    @GetMapping("/accessories")
-    public ResponseEntity<List<Product>> getAllAccessories(){
-        return ResponseEntity.ok(productRepo.findByCategory("Accessories"));
+    @GetMapping("/category/{category}")
+    public ResponseEntity<?> getProductsByCategory(@PathVariable(value = "category")String category){
+        switch (category){
+            case "men":
+                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.MEN));
+            case "women":
+                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.WOMEN));
+            case "kids":
+                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.KIDS));
+            case "accessories":
+                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.ACCESSORIES));
+            default:
+                return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid category"));
+        }
     }
 
     @PutMapping("/{id}")

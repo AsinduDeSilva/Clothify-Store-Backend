@@ -1,5 +1,6 @@
 package com.clothifystore.entity;
 
+import com.clothifystore.enums.ProductSizes;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,7 @@ public class OrderDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
     private int productID;
-    private String size;
+    private ProductSizes size;
     private int quantity;
     private double unitPrice;
 

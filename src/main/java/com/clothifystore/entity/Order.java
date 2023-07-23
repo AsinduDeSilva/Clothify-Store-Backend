@@ -1,5 +1,6 @@
 package com.clothifystore.entity;
 
+import com.clothifystore.enums.OrderStatusTypes;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,7 +19,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int orderID;
     private String dateAndTime;
-    private String status;
+    private OrderStatusTypes status;
     private String receiverAddress;
     private String receiverMobileNo;
     private String receiverName;
