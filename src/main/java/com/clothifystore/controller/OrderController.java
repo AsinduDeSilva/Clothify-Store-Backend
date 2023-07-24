@@ -87,29 +87,20 @@ public class OrderController {
         return ResponseEntity.ok(orderRepo.findAll());
     }
 
-    @GetMapping("/pending")
-    public ResponseEntity<List<Order>> getAllPendingOrders(){
-        return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PENDING.toString()));
-    }
-
-    @GetMapping("/proccessing")
-    public ResponseEntity<List<Order>> getAllProccessingOrders(){
-        return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PROCESSING.toString()));
-    }
-
-    @GetMapping("/delivered")
-    public ResponseEntity<List<Order>> getAllDeliveredOrders(){
-        return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.DELIVERED.toString()));
-    }
-
-    @GetMapping("/cancelled")
-    public ResponseEntity<List<Order>> getAllCancelledOrders(){
-        return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.CANCELLED.toString()));
-    }
-
-    @GetMapping("/customer/{id}")
-    public ResponseEntity<List<Order>> getOrdersOf(@PathVariable(value = "id")int customerID){
-        return ResponseEntity.ok(orderRepo.findByCustomerID(customerID));
+    @GetMapping("/status/{status}")
+    public ResponseEntity<?> getOrdersByStatus(@PathVariable(value = "status")int status){
+        switch (status){
+            case 0 :
+                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PENDING));
+            case 1 :
+                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PROCESSING));
+            case 2 :
+                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.DELIVERED));
+            case 3 :
+                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.CANCELLED));
+            default:
+                return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
+        }
     }
 
     @PutMapping("/{id}/{status}")
