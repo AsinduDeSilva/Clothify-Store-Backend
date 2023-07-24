@@ -1,16 +1,24 @@
 package com.clothifystore.controller;
 
 import com.clothifystore.dto.response.CrudResponse;
+import com.clothifystore.entity.Customer;
 import com.clothifystore.entity.Order;
 import com.clothifystore.entity.OrderDetail;
 import com.clothifystore.entity.Product;
 import com.clothifystore.enums.OrderStatusTypes;
+import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.OrderRepo;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.bind.annotation.*;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import java.util.List;
 
 @RestController
@@ -23,8 +31,17 @@ public class OrderController {
     @Autowired
     private ProductRepo productRepo;
 
+    @Autowired
+    private CustomerRepo customerRepo;
+
+    @Autowired
+    private JavaMailSender javaMailSender;
+
+    @Value("${spring.mail.username}")
+    private String senderMail;
+
     @PostMapping
-    public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order){
+    public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException {
 
         for (OrderDetail orderDetail : order.getOrderDetails()){
             if(productRepo.findById(orderDetail.getProductID()).isPresent()){
@@ -70,6 +87,22 @@ public class OrderController {
         }
         order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
+
+        if(customerRepo.existsById(order.getCustomerID())){
+            Customer customer = customerRepo.findByCustomerID(order.getCustomerID());
+
+            String emailBody = "<h1>Hey there, "+customer.getFirstName()+"</h1>"
+                    +"Your order Received. Thank you for shopping with us.";
+
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            helper.setFrom(senderMail);
+            helper.setSubject("Order Placed");
+            helper.setTo(customer.getUser().getEmail());
+            helper.setText(emailBody,true);
+            javaMailSender.send(message);
+        }
+
         return ResponseEntity.ok(new CrudResponse(true, "Order placed"));
 
     }
@@ -101,6 +134,11 @@ public class OrderController {
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
         }
+    }
+
+    @GetMapping("/customer/{id}")
+    public ResponseEntity<List<Order>> getOrdersOf(@PathVariable(value = "id")int customerID){
+        return ResponseEntity.ok(orderRepo.findByCustomerID(customerID));
     }
 
     @PutMapping("/{id}/{status}")
