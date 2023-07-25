@@ -44,67 +44,56 @@ public class OrderController {
     public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException {
 
         for (OrderDetail orderDetail : order.getOrderDetails()){
-            if(productRepo.findById(orderDetail.getProductID()).isPresent()){
-                Product product = productRepo.findById(orderDetail.getProductID()).get();
-                int restQty;
-                switch (orderDetail.getSize()){
-                    case SMALL:
-                        restQty = product.getSmallQty()-orderDetail.getQuantity();
-                        if(restQty<0){
-                            return ResponseEntity.badRequest().body(
-                                    new CrudResponse(false,"Do not have enough stock")
-                            );
-                        }else{
-                            product.setSmallQty(restQty);
-                        }
-                        break;
-                    case MEDIUM:
-                        restQty = product.getMediumQty()-orderDetail.getQuantity();
-                        if(restQty<0){
-                            return ResponseEntity.badRequest().body(
-                                    new CrudResponse(false,"Do not have enough stock")
-                            );
-                        }else{
-                            product.setMediumQty(restQty);
-                        }
-                        break;
-                    case LARGE:
-                        restQty = product.getLargeQty()-orderDetail.getQuantity();
-                        if(restQty<0){
-                            return ResponseEntity.badRequest().body(
-                                    new CrudResponse(false,"Do not have enough stock")
-                            );
-                        }else{
-                            product.setLargeQty(restQty);
-                        }
-                        break;
-                    default:
-                        return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid size"));
-                }
-            }else{
+            if(productRepo.findById(orderDetail.getProductID()).isEmpty()){
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Some products not found"));
             }
+
+            Product product = productRepo.findById(orderDetail.getProductID()).get();
+            int restQty;
+            switch (orderDetail.getSize()) {
+                case SMALL: restQty = product.getSmallQty() - orderDetail.getQuantity();break;
+                case MEDIUM: restQty = product.getMediumQty() - orderDetail.getQuantity();break;
+                case LARGE: restQty = product.getLargeQty() - orderDetail.getQuantity();break;
+                default:
+                    return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid size"));
+            }
+
+            if (restQty < 0) {
+                return ResponseEntity.badRequest().body(new CrudResponse(false, "Do not have enough stock"));
+            }
+
+            switch (orderDetail.getSize()) {
+                case SMALL: product.setSmallQty(restQty);break;
+                case MEDIUM: product.setMediumQty(restQty);break;
+                case LARGE: product.setLargeQty(restQty);
+            }
         }
+
         order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
 
-        if(customerRepo.existsById(order.getCustomerID())){
-            Customer customer = customerRepo.findByCustomerID(order.getCustomerID());
-
-            String emailBody = "<h1>Hey there, "+customer.getFirstName()+"</h1>"
-                    +"Your order Received. Thank you for shopping with us.";
-
-            MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-            helper.setFrom(senderMail);
-            helper.setSubject("Order Placed");
-            helper.setTo(customer.getUser().getEmail());
-            helper.setText(emailBody,true);
-            javaMailSender.send(message);
-        }
+        sendConfirmationEmail(order);
 
         return ResponseEntity.ok(new CrudResponse(true, "Order placed"));
 
+    }
+
+    private boolean sendConfirmationEmail(Order order) throws MessagingException {
+        if(!customerRepo.existsById(order.getCustomerID())){return false;}
+
+        Customer customer = customerRepo.findByCustomerID(order.getCustomerID());
+
+        String emailBody = "<h1>Hey there, "+customer.getFirstName()+" "+customer.getLastName()+"</h1>"
+                          +"Your order Received. Thank you for shopping with us.";
+
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+        helper.setFrom(senderMail);
+        helper.setSubject("Order Placed");
+        helper.setTo(customer.getUser().getEmail());
+        helper.setText(emailBody,true);
+        javaMailSender.send(message);
+        return true;
     }
 
     @GetMapping("/{id}")
