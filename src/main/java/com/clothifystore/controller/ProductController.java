@@ -6,11 +6,14 @@ import com.clothifystore.entity.Product;
 import com.clothifystore.enums.ProductCategories;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 @RestController
@@ -59,6 +62,16 @@ public class ProductController {
                 return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.ACCESSORIES));
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid category"));
+        }
+    }
+
+    @GetMapping("/image/{filename}")
+    public ResponseEntity<?> getImage(@PathVariable(value = "filename")String filename) {
+        try {
+            byte[] image = Files.readAllBytes(new File(PRODUCT_IMAGES_FOLDER_PATH+filename).toPath());
+            return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.valueOf("image/png")).body(image);
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid filename"));
         }
     }
 
