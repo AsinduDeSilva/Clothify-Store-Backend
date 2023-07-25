@@ -1,5 +1,6 @@
 package com.clothifystore.entity;
 
+import com.clothifystore.enums.UserRoles;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,7 @@ public class User {
     @Column(nullable = false)
     private String password;
     @Column(nullable = false)
-    private String role;
+    private UserRoles role;
     @Column(unique = true,nullable = false)
     private String email;
 }
