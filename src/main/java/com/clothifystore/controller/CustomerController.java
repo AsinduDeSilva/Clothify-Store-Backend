@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/customer")
@@ -41,6 +42,15 @@ public class CustomerController {
     public ResponseEntity<?> getCustomer(@PathVariable(value = "id") int customerID){
         if(customerRepo.existsById(customerID)){
             return ResponseEntity.ok(customerRepo.findByCustomerID(customerID));
+        }
+        return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<?> getCustomerByEmail(@PathVariable(value = "email")String email){
+        Optional<Customer> customerOptional = customerRepo.findByUserEmail(email);
+        if(customerOptional.isPresent()){
+            return ResponseEntity.ok(customerOptional.get());
         }
         return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
     }
