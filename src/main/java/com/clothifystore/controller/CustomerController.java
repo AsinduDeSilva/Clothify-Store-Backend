@@ -7,6 +7,8 @@ import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,10 +23,14 @@ public class CustomerController {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
         if(userRepo.countByUsername(customer.getUser().getUsername())==0 && userRepo.countByEmail(customer.getUser().getEmail())==0) {
             customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
+            customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
             customerRepo.save(customer);
             return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
         }
