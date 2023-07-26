@@ -1,10 +1,9 @@
 package com.clothifystore.enums;
 
-import lombok.ToString;
-
 public enum OrderStatusTypes {
     PENDING,
     PROCESSING,
+    OUT_FOR_DELIVERY,
     DELIVERED,
     CANCELLED
 }

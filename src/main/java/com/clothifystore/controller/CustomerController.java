@@ -7,7 +7,6 @@ import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,32 +26,35 @@ public class CustomerController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    private final String customerNotFound = "Customer not found";
+
     @PostMapping
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
-        if(userRepo.countByUsername(customer.getUser().getUsername())==0 && userRepo.countByEmail(customer.getUser().getEmail())==0) {
-            customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
-            customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
-            customerRepo.save(customer);
-            return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
+        if(userRepo.countByEmail(customer.getUser().getEmail()) > 0) {
+            return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
+        customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
+        customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCustomer(@PathVariable(value = "id") int customerID){
-        if(customerRepo.existsById(customerID)){
-            return ResponseEntity.ok(customerRepo.findByCustomerID(customerID));
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
+        return ResponseEntity.ok(customerOptional.get());
     }
 
     @GetMapping("/email/{email}")
     public ResponseEntity<?> getCustomerByEmail(@PathVariable(value = "email")String email){
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(email);
-        if(customerOptional.isPresent()){
-            return ResponseEntity.ok(customerOptional.get());
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
+        return ResponseEntity.ok(customerOptional.get());
     }
 
     @GetMapping
@@ -62,22 +64,24 @@ public class CustomerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID, @RequestBody Customer customer){
-        if(customerRepo.existsById(customerID)){
-            customer.setCustomerID(customerID);
-            customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
-            customer.getUser().setUserId(customerRepo.findByCustomerID(customerID).getUser().getUserId());
-            customerRepo.save(customer);
-            return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
+        customer.setCustomerID(customerID);
+        customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
+        customer.getUser().setUserId(customerOptional.get().getUser().getUserId());
+        customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteCustomer(@PathVariable (value = "id")int customerID){
-        if(customerRepo.existsById(customerID)){
-            customerRepo.deleteById(customerID);
-            return ResponseEntity.ok(new CrudResponse(true, "Customer Deleted"));
+        if(!customerRepo.existsById(customerID)){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Customer not found"));
+        customerRepo.deleteById(customerID);
+        return ResponseEntity.ok(new CrudResponse(true, "Customer Deleted"));
     }
 }

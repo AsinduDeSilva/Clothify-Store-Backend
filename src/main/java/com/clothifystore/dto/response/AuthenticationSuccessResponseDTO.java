@@ -1,7 +1,5 @@
 package com.clothifystore.dto.response;
 
-
-import com.clothifystore.enums.UserRoles;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

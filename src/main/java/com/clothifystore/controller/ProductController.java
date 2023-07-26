@@ -6,6 +6,7 @@ import com.clothifystore.entity.Product;
 import com.clothifystore.enums.ProductCategories;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,22 +16,28 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/product")
 public class ProductController {
 
-    private final String PRODUCT_IMAGES_FOLDER_PATH = "C:\\Asindu\\Clothify Store\\Product Images\\";
+    @Value("${product.images.path}")
+    private String productImagesPath;
 
     @Autowired
     private ProductRepo productRepo;
 
+    private final String productNotFound = "Product not found";
+
     @PostMapping
     public ResponseEntity<CrudResponse> addProduct(@ModelAttribute ProductRequestDTO request) throws IOException {
-        request.getImage().transferTo(new File(PRODUCT_IMAGES_FOLDER_PATH+request.getImage().getOriginalFilename()));
 
-        productRepo.save(new Product(0, request.getName(), request.getUnitPrice(), request.getLargeQty()
-                , request.getMediumQty(), request.getSmallQty(), request.getCategory(), request.getImage().getOriginalFilename())
+        int productID = productRepo.save(new Product()).getProductID();
+        request.getImage().transferTo(new File(productImagesPath + productID + ".png"));
+
+        productRepo.save(new Product(productID, request.getName(), request.getUnitPrice(), request.getLargeQty()
+                , request.getMediumQty(), request.getSmallQty(), request.getCategory(), productID+".png")
         );
 
         return ResponseEntity.ok(new CrudResponse(true, "Product Added"));
@@ -38,10 +45,11 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getProduct(@PathVariable (value = "id")int productID){
-        if(productRepo.findById(productID).isPresent()){
-            return ResponseEntity.ok(productRepo.findById(productID).get());
+        Optional<Product> productOptional = productRepo.findById(productID);
+        if(productOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Product not found"));
+        return ResponseEntity.ok(productOptional.get());
     }
 
     @GetMapping
@@ -68,7 +76,7 @@ public class ProductController {
     @GetMapping("/image/{filename}")
     public ResponseEntity<?> getImage(@PathVariable(value = "filename")String filename) {
         try {
-            byte[] image = Files.readAllBytes(new File(PRODUCT_IMAGES_FOLDER_PATH+filename).toPath());
+            byte[] image = Files.readAllBytes(new File(productImagesPath+filename).toPath());
             return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.valueOf("image/png")).body(image);
         } catch (IOException e) {
             return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid filename"));
@@ -76,29 +84,32 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CrudResponse> updateProduct(@PathVariable(value = "id")int produtID,
+    public ResponseEntity<CrudResponse> updateProduct(@PathVariable(value = "id")int productID,
                                                       @ModelAttribute ProductRequestDTO request) throws IOException {
 
-        if (productRepo.findById(produtID).isPresent()) {
-
-            new File(PRODUCT_IMAGES_FOLDER_PATH + productRepo.findById(produtID).get().getImgFileName()).delete();
-            request.getImage().transferTo(new File(PRODUCT_IMAGES_FOLDER_PATH + request.getImage().getOriginalFilename()));
-
-            productRepo.save(new Product(produtID, request.getName(), request.getUnitPrice(), request.getLargeQty()
-                    , request.getMediumQty(), request.getSmallQty(), request.getCategory(), request.getImage().getOriginalFilename())
-            );
-
-            return ResponseEntity.ok(new CrudResponse(true, "Product Updated"));
+        Optional<Product> productOptional = productRepo.findById(productID);
+        if (productOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body(new CrudResponse(false,  productNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false, "Product not found"));
+
+        request.getImage().transferTo(new File(productImagesPath + productID + ".png"));
+
+        productRepo.save(new Product(productID, request.getName(), request.getUnitPrice(), request.getLargeQty()
+                , request.getMediumQty(), request.getSmallQty(), request.getCategory(), productID + ".png")
+        );
+
+        return ResponseEntity.ok(new CrudResponse(true, "Product Updated"));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteProduct(@PathVariable(value = "id")int productID){
-        if(productRepo.existsById(productID)){
-            productRepo.deleteById(productID);
-            return ResponseEntity.ok(new CrudResponse(true, "Product Deleted"));
+        Optional<Product> productOptional = productRepo.findById(productID);
+        if(productOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false,"Product not found"));
+        productRepo.deleteById(productID);
+        new File(productImagesPath + productOptional.get().getImgFileName()).delete();
+        return ResponseEntity.ok(new CrudResponse(true, "Product Deleted"));
     }
+
 }
