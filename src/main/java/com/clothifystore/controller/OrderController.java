@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,7 +46,7 @@ public class OrderController {
     private String senderMail;
 
     @PostMapping
-    public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException {
+    public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException, UnsupportedEncodingException {
 
         for (OrderDetail orderDetail : order.getOrderDetails()){
 
@@ -88,8 +89,7 @@ public class OrderController {
 
     }
 
-    private void sendConfirmationEmail(Order order) throws MessagingException {
-
+    private void sendConfirmationEmail(Order order) throws MessagingException, UnsupportedEncodingException {
         Optional<Customer> customerOptional = customerRepo.findById(order.getCustomerID());
         if(customerOptional.isEmpty()){return;}
         Customer customer = customerOptional.get();
@@ -99,7 +99,7 @@ public class OrderController {
 
         MimeMessage message = javaMailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
-        helper.setFrom(senderMail);
+        helper.setFrom(senderMail, "Clothify Store");
         helper.setSubject("Order Placed");
         helper.setTo(customer.getUser().getEmail());
         helper.setText(emailBody,true);

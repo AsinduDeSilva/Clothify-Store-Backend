@@ -11,4 +11,5 @@ public class AuthenticationSuccessResponseDTO {
     private boolean isSuccess;
     private String message;
     private String jwt;
+    private boolean isCustomer;
 }

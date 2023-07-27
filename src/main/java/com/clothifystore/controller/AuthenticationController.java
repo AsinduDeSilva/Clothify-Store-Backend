@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,7 @@ public class AuthenticationController {
 
     @PostMapping
     public ResponseEntity<?> authentication(@RequestBody AuthenticationRequestDTO request){
+
         try{
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword())
@@ -40,6 +42,10 @@ public class AuthenticationController {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
         String jwt = jwtUtil.generateToken(userDetails);
-        return ResponseEntity.ok(new AuthenticationSuccessResponseDTO(true, "Login successful", jwt));
+        boolean isCustomer = userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
+
+        return ResponseEntity.ok(
+                new AuthenticationSuccessResponseDTO(true, "Login successful", jwt, isCustomer)
+        );
     }
 }

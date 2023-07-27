@@ -41,7 +41,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/customer").permitAll()
                     .antMatchers("/customer/page/{page}").hasRole("ADMIN")
                     .antMatchers("/customer/{id}").hasAnyRole("ADMIN","CUSTOMER")
-                    .antMatchers("/customer/email/{email}").hasAnyRole("ADMIN","CUSTOMER")
+                    .antMatchers("/customer/email").hasAnyRole("ADMIN","CUSTOMER")
+                    .antMatchers("/customer/password/{id}").hasRole("CUSTOMER")
 
                     .antMatchers("/order").permitAll()
                     .antMatchers("/order/page/{page}").hasRole("ADMIN")
@@ -51,7 +52,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/order/customer/{id}").hasRole("CUSTOMER")
 
                     .antMatchers("/product").hasRole("ADMIN")
-                    .antMatchers("/product/page/{page}").hasRole("ADMIN")
+                    .antMatchers("/product/page/{page}").hasAnyRole("ADMIN","CUSTOMER")
                     .antMatchers(HttpMethod.GET,"/product/{id}").permitAll()
                     .antMatchers(HttpMethod.PUT,"/product/{id}").hasRole("ADMIN")
                     .antMatchers(HttpMethod.DELETE,"/product/{id}").hasRole("ADMIN")

@@ -1,5 +1,8 @@
 package com.clothifystore.controller;
 
+import com.clothifystore.dto.request.ChangePasswordRequestDTO;
+import com.clothifystore.dto.request.GetCustomerByEmailReqestDTO;
+import com.clothifystore.dto.request.UpdateCustomerRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
 import com.clothifystore.entity.Customer;
 import com.clothifystore.enums.UserRoles;
@@ -54,9 +57,9 @@ public class CustomerController {
     }
 
     @GetMapping("/email")
-    public ResponseEntity<?> getCustomerByEmail(@RequestHeader(value = "Email") String email){
+    public ResponseEntity<?> getCustomerByEmail(@RequestBody GetCustomerByEmailReqestDTO request){
 
-        Optional<Customer> customerOptional = customerRepo.findByUserEmail(email);
+        Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
         if(customerOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
@@ -70,20 +73,34 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID,
-                                                       @RequestBody Customer customer){
+    public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id") int customerID,
+                                                       @RequestBody UpdateCustomerRequestDTO reques){
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }
-        customer.setCustomerID(customerID);
-        customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
-        customer.getUser().setUserId(customerOptional.get().getUser().getUserId());
-        customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
-        customerRepo.save(customer);
+        customerOptional.get().setFirstName(reques.getFirstName());
+        customerOptional.get().setLastName(reques.getLastName());
+        customerOptional.get().setAddress(reques.getAddress());
+        customerOptional.get().setMobileNo(reques.getMobileNo());
+        customerRepo.save(customerOptional.get());
         return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));
     }
+
+    @PutMapping("/password/{id}")
+    public ResponseEntity<CrudResponse> changePassword(@PathVariable(value = "id") int customerID,
+                                                       @RequestBody ChangePasswordRequestDTO request){
+
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        customerOptional.get().getUser().setPassword(passwordEncoder.encode(request.getPassword()));
+        customerRepo.save(customerOptional.get());
+        return ResponseEntity.ok(new CrudResponse(true, "Password Changed"));
+    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteCustomer(@PathVariable (value = "id")int customerID){
