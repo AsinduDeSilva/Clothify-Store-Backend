@@ -30,7 +30,7 @@ public class CustomerController {
 
     @PostMapping
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
-        if(userRepo.countByEmail(customer.getUser().getEmail()) > 0) {
+        if(userRepo.existsByEmail(customer.getUser().getEmail())) {
             return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
         }
         customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
