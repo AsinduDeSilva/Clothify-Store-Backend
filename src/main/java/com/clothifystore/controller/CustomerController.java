@@ -6,11 +6,14 @@ import com.clothifystore.enums.UserRoles;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+
 import java.util.Optional;
 
 @RestController
@@ -30,6 +33,7 @@ public class CustomerController {
 
     @PostMapping
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
+
         if(userRepo.existsByEmail(customer.getUser().getEmail())) {
             return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
         }
@@ -41,6 +45,7 @@ public class CustomerController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCustomer(@PathVariable(value = "id") int customerID){
+
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
@@ -48,8 +53,9 @@ public class CustomerController {
         return ResponseEntity.ok(customerOptional.get());
     }
 
-    @GetMapping("/email/{email}")
-    public ResponseEntity<?> getCustomerByEmail(@PathVariable(value = "email")String email){
+    @GetMapping("/email")
+    public ResponseEntity<?> getCustomerByEmail(@RequestHeader(value = "Email") String email){
+
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(email);
         if(customerOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
@@ -57,13 +63,16 @@ public class CustomerController {
         return ResponseEntity.ok(customerOptional.get());
     }
 
-    @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers(){
-        return ResponseEntity.ok(customerRepo.findAll());
+    @GetMapping("/page/{page}")
+    public ResponseEntity<Page<Customer>> getAllCustomers(@PathVariable(value = "page") int page){
+        Pageable pageable = PageRequest.of(page - 1, 20);
+        return ResponseEntity.ok(customerRepo.findAll(pageable));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID, @RequestBody Customer customer){
+    public ResponseEntity<CrudResponse> updateCustomer(@PathVariable(value = "id")int customerID,
+                                                       @RequestBody Customer customer){
+
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
@@ -78,6 +87,7 @@ public class CustomerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteCustomer(@PathVariable (value = "id")int customerID){
+
         if(!customerRepo.existsById(customerID)){
             return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
         }

@@ -11,6 +11,9 @@ import com.clothifystore.repository.OrderRepo;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +51,9 @@ public class OrderController {
 
             Optional<Product> productOptional = productRepo.findById(orderDetail.getProductID());
             if(productOptional.isEmpty()){
-                return ResponseEntity.badRequest().body(new CrudResponse(false, "Some products not found"));
+                return ResponseEntity.badRequest().body(
+                        new CrudResponse(false, "Some products not found")
+                );
             }
 
             Product product = productOptional.get();
@@ -61,7 +67,9 @@ public class OrderController {
             }
 
             if (restQty < 0) {
-                return ResponseEntity.badRequest().body(new CrudResponse(false, "Do not have enough stock"));
+                return ResponseEntity.badRequest().body(
+                        new CrudResponse(false, "Do not have enough stock")
+                );
             }
 
             switch (orderDetail.getSize()) {
@@ -80,9 +88,10 @@ public class OrderController {
 
     }
 
-    private boolean sendConfirmationEmail(Order order) throws MessagingException {
+    private void sendConfirmationEmail(Order order) throws MessagingException {
+
         Optional<Customer> customerOptional = customerRepo.findById(order.getCustomerID());
-        if(customerOptional.isEmpty()){return false;}
+        if(customerOptional.isEmpty()){return;}
         Customer customer = customerOptional.get();
 
         String emailBody = "<h1>Hey there, "+customer.getFirstName()+" "+customer.getLastName()+"</h1>"
@@ -95,7 +104,6 @@ public class OrderController {
         helper.setTo(customer.getUser().getEmail());
         helper.setText(emailBody,true);
         javaMailSender.send(message);
-        return true;
     }
 
     @GetMapping("/{id}")
@@ -107,24 +115,31 @@ public class OrderController {
         return ResponseEntity.ok(new CrudResponse(false, "Order not found"));
     }
 
-    @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders(){
-        return ResponseEntity.ok(orderRepo.findAll());
+    @GetMapping("/page/{page}")
+    public ResponseEntity<?> getAllOrdersByPage(@PathVariable(value = "page")int page){
+
+        Sort sort = Sort.by(Sort.Order.desc("orderID"));
+        Pageable pageable = PageRequest.of(page - 1, 20, sort);
+        return ResponseEntity.ok(orderRepo.findAll(pageable));
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<?> getOrdersByStatus(@PathVariable(value = "status")int status){
+    public ResponseEntity<?> getOrdersByStatus(@PathVariable(value = "status") int status,
+                                               @RequestParam(value = "page") int page){
+
+        Sort sort = Sort.by(Sort.Order.desc("orderID"));
+        Pageable pageable = PageRequest.of(page - 1, 20, sort);
         switch (status){
             case 0 :
-                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PENDING));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PENDING, pageable));
             case 1 :
-                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.PROCESSING));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PROCESSING, pageable));
             case 2 :
-                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.OUT_FOR_DELIVERY));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.OUT_FOR_DELIVERY, pageable));
             case 3 :
-                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.DELIVERED));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.DELIVERED, pageable));
             case 4 :
-                return ResponseEntity.ok(orderRepo.findByStatus(OrderStatusTypes.CANCELLED));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.CANCELLED, pageable));
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
         }
@@ -135,21 +150,22 @@ public class OrderController {
         return ResponseEntity.ok(orderRepo.findByCustomerID(customerID));
     }
 
-    @PutMapping("/{id}/{status}")
-    public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id")int orderID, @PathVariable(value = "status")int status){
+    @PutMapping("/{id}")
+    public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id") int orderID,
+                                                          @RequestParam(value = "status" )int status){
+
         Optional<Order> orderOptional = orderRepo.findById(orderID);
         if(orderOptional.isPresent()){
-            Order order = orderOptional.get();
             switch (status){
-                case 0 : order.setStatus(OrderStatusTypes.PENDING); break;
-                case 1 : order.setStatus(OrderStatusTypes.PROCESSING); break;
-                case 2 : order.setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
-                case 3 : order.setStatus(OrderStatusTypes.DELIVERED); break;
-                case 4 : order.setStatus(OrderStatusTypes.CANCELLED); break;
+                case 0 : orderOptional.get().setStatus(OrderStatusTypes.PENDING); break;
+                case 1 : orderOptional.get().setStatus(OrderStatusTypes.PROCESSING); break;
+                case 2 : orderOptional.get().setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
+                case 3 : orderOptional.get().setStatus(OrderStatusTypes.DELIVERED); break;
+                case 4 : orderOptional.get().setStatus(OrderStatusTypes.CANCELLED); break;
                 default:
                     return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
             }
-            orderRepo.save(order);
+            orderRepo.save(orderOptional.get());
             return ResponseEntity.ok(new CrudResponse(true, "Order Updated"));
         }
         return ResponseEntity.badRequest().body(new CrudResponse(false, "Order not found"));

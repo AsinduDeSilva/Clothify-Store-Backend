@@ -7,6 +7,9 @@ import com.clothifystore.enums.ProductCategories;
 import com.clothifystore.repository.ProductRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -45,6 +47,7 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getProduct(@PathVariable (value = "id")int productID){
+
         Optional<Product> productOptional = productRepo.findById(productID);
         if(productOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
@@ -52,22 +55,29 @@ public class ProductController {
         return ResponseEntity.ok(productOptional.get());
     }
 
-    @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts(){
-        return ResponseEntity.ok(productRepo.findAll());
+    @GetMapping("/page/{page}")
+    public ResponseEntity<?> getAllOrdersByPage(@PathVariable(value = "page")int page){
+
+        Sort sort = Sort.by(Sort.Order.desc("productID"));
+        Pageable pageable = PageRequest.of(page - 1, 24, sort);
+        return ResponseEntity.ok(productRepo.findAll(pageable));
     }
 
     @GetMapping("/category/{category}")
-    public ResponseEntity<?> getProductsByCategory(@PathVariable(value = "category")String category){
+    public ResponseEntity<?> getProductsByCategory(@PathVariable(value = "category") String category,
+                                                   @RequestParam(value = "page") int page){
+
+        Sort sort = Sort.by(Sort.Order.desc("productID"));
+        Pageable pageable = PageRequest.of(page - 1, 3, sort);
         switch (category){
             case "men":
-                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.MEN));
+                return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.MEN, pageable));
             case "women":
-                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.WOMEN));
+                return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.WOMEN, pageable));
             case "kids":
-                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.KIDS));
+                return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.KIDS, pageable));
             case "accessories":
-                return ResponseEntity.ok(productRepo.findByCategory(ProductCategories.ACCESSORIES));
+                return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.ACCESSORIES, pageable));
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid category"));
         }
@@ -75,6 +85,7 @@ public class ProductController {
 
     @GetMapping("/image/{filename}")
     public ResponseEntity<?> getImage(@PathVariable(value = "filename")String filename) {
+
         try {
             byte[] image = Files.readAllBytes(new File(productImagesPath+filename).toPath());
             return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.valueOf("image/png")).body(image);
@@ -103,6 +114,7 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteProduct(@PathVariable(value = "id")int productID){
+
         Optional<Product> productOptional = productRepo.findById(productID);
         if(productOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
