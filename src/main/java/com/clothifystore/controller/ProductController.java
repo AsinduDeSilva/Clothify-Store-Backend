@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -110,6 +111,18 @@ public class ProductController {
         );
 
         return ResponseEntity.ok(new CrudResponse(true, "Product Updated"));
+    }
+
+    @PutMapping("/image/{id}")
+    public ResponseEntity<CrudResponse> updateProductImage(@PathVariable(value = "id") int productID,
+                                                           @RequestParam(value = "image") MultipartFile image) throws IOException {
+
+        if (!productRepo.existsById(productID)) {
+            return ResponseEntity.badRequest().body(new CrudResponse(false,  productNotFound));
+        }
+
+        image.transferTo(new File(productImagesPath + productID + ".png"));
+        return ResponseEntity.ok(new CrudResponse(true, "Product Image Updated"));
     }
 
     @DeleteMapping("/{id}")
