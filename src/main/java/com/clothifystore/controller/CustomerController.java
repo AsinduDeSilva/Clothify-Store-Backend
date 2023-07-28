@@ -2,12 +2,16 @@ package com.clothifystore.controller;
 
 import com.clothifystore.dto.request.ChangePasswordRequestDTO;
 import com.clothifystore.dto.request.GetCustomerByEmailReqestDTO;
+import com.clothifystore.dto.request.OTPVerificationRequestDTO;
 import com.clothifystore.dto.request.UpdateCustomerRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
+import com.clothifystore.dto.response.OTPVerificationResponseDTO;
 import com.clothifystore.entity.Customer;
+import com.clothifystore.entity.User;
 import com.clothifystore.enums.UserRoles;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
+import com.clothifystore.service.OTPService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 
+import javax.mail.MessagingException;
+import java.io.UnsupportedEncodingException;
 import java.util.Optional;
 
 @RestController
@@ -32,18 +38,58 @@ public class CustomerController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private OTPService otpService;
+
     private final String customerNotFound = "Customer not found";
 
     @PostMapping
-    public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer){
+    public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer) throws MessagingException, UnsupportedEncodingException {
 
         if(userRepo.existsByEmail(customer.getUser().getEmail())) {
             return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
         }
+        customer.getUser().setEnabled(false);
         customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
         customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
         customerRepo.save(customer);
+
+        otpService.sendOTP(customer.getUser());
+
         return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyCustomer(@RequestBody OTPVerificationRequestDTO request){
+
+        Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        User user = customerOptional.get().getUser();
+
+        if(otpService.isOTPExpired(user)){
+            return ResponseEntity.badRequest().body(new OTPVerificationResponseDTO(false, true, "OTP expired"));
+        }
+
+        if (!otpService.verifyOTP(user, request.getOtp())){
+            return ResponseEntity.badRequest().body(new OTPVerificationResponseDTO(false, false, "Invalid OTP"));
+        }
+        user.setEnabled(true);
+        userRepo.save(user);
+
+        return ResponseEntity.ok(new OTPVerificationResponseDTO(true,false, "Verification Success"));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOTP(@RequestBody OTPVerificationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
+
+        Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        otpService.sendOTP(customerOptional.get().getUser());
+        return ResponseEntity.ok("");
     }
 
     @GetMapping("/{id}")
