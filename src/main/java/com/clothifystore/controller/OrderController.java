@@ -9,18 +9,15 @@ import com.clothifystore.enums.OrderStatusTypes;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.OrderRepo;
 import com.clothifystore.repository.ProductRepo;
+import com.clothifystore.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.web.bind.annotation.*;
-
 import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage;
+
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
@@ -40,10 +37,7 @@ public class OrderController {
     private CustomerRepo customerRepo;
 
     @Autowired
-    private JavaMailSender javaMailSender;
-
-    @Value("${spring.mail.username}")
-    private String senderMail;
+    private EmailService emailService;
 
     @PostMapping
     public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException, UnsupportedEncodingException {
@@ -83,28 +77,19 @@ public class OrderController {
         order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
 
-        sendConfirmationEmail(order);
+        Optional<Customer> customerOptional = customerRepo.findById(order.getCustomerID());
+        if(customerOptional.isPresent()){
+            String emailBody = "<h1>Hey there, "+customerOptional.get().getFirstName()+"</h1>"
+                             + "Your order Received. Thank you for shopping with us.";
+
+            emailService.sendEmail(customerOptional.get().getUser().getEmail(), "Order Placed", emailBody);
+        }
 
         return ResponseEntity.ok(new CrudResponse(true, "Order placed"));
 
     }
 
-    private void sendConfirmationEmail(Order order) throws MessagingException, UnsupportedEncodingException {
-        Optional<Customer> customerOptional = customerRepo.findById(order.getCustomerID());
-        if(customerOptional.isEmpty()){return;}
-        Customer customer = customerOptional.get();
 
-        String emailBody = "<h1>Hey there, "+customer.getFirstName()+" "+customer.getLastName()+"</h1>"
-                          +"Your order Received. Thank you for shopping with us.";
-
-        MimeMessage message = javaMailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
-        helper.setFrom(senderMail, "Clothify Store");
-        helper.setSubject("Order Placed");
-        helper.setTo(customer.getUser().getEmail());
-        helper.setText(emailBody,true);
-        javaMailSender.send(message);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrder(@PathVariable(value = "id")int orderID){
@@ -152,23 +137,33 @@ public class OrderController {
 
     @PutMapping("/{id}")
     public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id") int orderID,
-                                                          @RequestParam(value = "status" )int status){
+                                                          @RequestParam(value = "status" )int status) throws MessagingException, UnsupportedEncodingException {
 
         Optional<Order> orderOptional = orderRepo.findById(orderID);
-        if(orderOptional.isPresent()){
-            switch (status){
-                case 0 : orderOptional.get().setStatus(OrderStatusTypes.PENDING); break;
-                case 1 : orderOptional.get().setStatus(OrderStatusTypes.PROCESSING); break;
-                case 2 : orderOptional.get().setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
-                case 3 : orderOptional.get().setStatus(OrderStatusTypes.DELIVERED); break;
-                case 4 : orderOptional.get().setStatus(OrderStatusTypes.CANCELLED); break;
-                default:
-                    return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
-            }
-            orderRepo.save(orderOptional.get());
-            return ResponseEntity.ok(new CrudResponse(true, "Order Updated"));
+        if(orderOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, "Order not found"));
         }
-        return ResponseEntity.badRequest().body(new CrudResponse(false, "Order not found"));
+        switch (status){
+            case 0 : orderOptional.get().setStatus(OrderStatusTypes.PENDING); break;
+            case 1 : orderOptional.get().setStatus(OrderStatusTypes.PROCESSING); break;
+            case 2 : orderOptional.get().setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
+            case 3 : orderOptional.get().setStatus(OrderStatusTypes.DELIVERED); break;
+            case 4 : orderOptional.get().setStatus(OrderStatusTypes.CANCELLED); break;
+            default:
+                return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
+        }
+        orderRepo.save(orderOptional.get());
+
+        Optional<Customer> customerOptional = customerRepo.findById(orderOptional.get().getCustomerID());
+        if(customerOptional.isPresent()){
+            String body = "<h1>Hey there, "+customerOptional.get().getFirstName()+"</h1>"
+                    + "Your order is "+orderOptional.get().getStatus().toString().toLowerCase().replace('_',' ');
+
+            emailService.sendEmail(customerOptional.get().getUser().getEmail(), "Order Status Updated", body);
+        }
+
+        return ResponseEntity.ok(new CrudResponse(true, "Order Updated"));
+
     }
 
 

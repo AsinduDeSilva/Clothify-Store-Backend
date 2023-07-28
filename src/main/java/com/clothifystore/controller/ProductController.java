@@ -69,7 +69,7 @@ public class ProductController {
                                                    @RequestParam(value = "page") int page){
 
         Sort sort = Sort.by(Sort.Order.desc("productID"));
-        Pageable pageable = PageRequest.of(page - 1, 3, sort);
+        Pageable pageable = PageRequest.of(page - 1, 24, sort);
         switch (category){
             case "men":
                 return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.MEN, pageable));
