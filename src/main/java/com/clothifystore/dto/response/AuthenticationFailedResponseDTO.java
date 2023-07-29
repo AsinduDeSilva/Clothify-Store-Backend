@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @Data
 public class AuthenticationFailedResponseDTO {
     private boolean isSuccess;
+    private boolean isCredentialsValid;
     private String message;
 }

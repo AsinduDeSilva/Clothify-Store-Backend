@@ -26,12 +26,16 @@ public class OTPService {
     private final Random random = new Random();
 
     public void sendOTP(User user) throws MessagingException, UnsupportedEncodingException {
-        String otp = String.valueOf(random.nextInt(1000000));
-        user.setOtp(passwordEncoder.encode(otp));
+        StringBuilder otp = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            otp.append(random.nextInt(10));
+        }
+        user.setOtp(passwordEncoder.encode(otp.toString()));
         user.setOtpExpirationTime(LocalDateTime.now().plusMinutes(5));
         userRepo.save(user);
 
-        String emailBody = "<div style=\"font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2\">\n" +
+        String emailBody =
+                "<div style=\"font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2\">\n" +
                 "  <div style=\"margin:50px auto;width:70%;padding:20px 0\">\n" +
                 "    <div style=\"border-bottom:1px solid #eee\">\n" +
                 "      <a href=\"\" style=\"font-size:1.4em;color: #000000;text-decoration:none;font-weight:600\">Clothify Store</a>\n" +

@@ -12,10 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
@@ -41,15 +43,15 @@ public class AuthenticationController {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostMapping
     public ResponseEntity<?> authentication(@RequestBody AuthenticationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
 
-        Optional<User> user = userRepo.findByEmail(request.getEmail());
-        if(user.isPresent() && !user.get().isEnabled()){
-            otpService.sendOTP(user.get());
-            return ResponseEntity.status(HttpStatus.LOCKED).body(
-                    new AuthenticationFailedResponseDTO(false, "Need to verify account")
-            );
+        Optional<User> userOptional = userRepo.findByEmail(request.getEmail());
+        if (userOptional.isPresent() && !passwordEncoder.matches(request.getPassword(), userOptional.get().getPassword())){
+            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
         }
 
         try{
@@ -57,7 +59,12 @@ public class AuthenticationController {
                     new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword())
             );
         }catch(BadCredentialsException e){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, "Invalid Credentials"));
+            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+        }catch(DisabledException e){
+            otpService.sendOTP(userOptional.get());
+            return ResponseEntity.status(HttpStatus.LOCKED).body(
+                    new AuthenticationFailedResponseDTO(false, true, "Need to verify account")
+            );
         }
 
 
