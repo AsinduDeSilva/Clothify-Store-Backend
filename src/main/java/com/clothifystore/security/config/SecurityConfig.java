@@ -15,6 +15,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -33,7 +38,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable()
+        http.csrf().disable().cors().and()
                 .authorizeHttpRequests()
                     .antMatchers("/authenticate").permitAll()
                     .antMatchers("/admin/**").hasRole("ADMIN")
@@ -42,25 +47,25 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers("/customer/verify").permitAll()
                     .antMatchers("/customer/resend-otp").permitAll()
                     .antMatchers("/customer/page/{page}").hasRole("ADMIN")
-                    .antMatchers("/customer/{id}").hasAnyRole("ADMIN","CUSTOMER")
                     .antMatchers("/customer/email").hasAnyRole("ADMIN","CUSTOMER")
+                    .antMatchers("/customer/{id}").hasAnyRole("ADMIN","CUSTOMER")
                     .antMatchers("/customer/password/{id}").hasRole("CUSTOMER")
 
-                    .antMatchers("/order").permitAll()
+                    .antMatchers("/order").hasRole("CUSTOMER")
+                    .antMatchers("/order/customer/{id}").hasRole("CUSTOMER")
                     .antMatchers("/order/page/{page}").hasRole("ADMIN")
                     .antMatchers("/order/{id}").hasRole("ADMIN")
-                    .antMatchers("/order/count").hasRole("ADMIN")
                     .antMatchers("/order/status/{status}").hasRole("ADMIN")
-                    .antMatchers("/order/customer/{id}").hasRole("CUSTOMER")
 
+                    .antMatchers("/product/category/{category}").permitAll()
+                    .antMatchers("/product/page/{page}").permitAll()
+                    .antMatchers("/product/image/{filename}").permitAll()
+                    .antMatchers(HttpMethod.GET,"/product/{id}").permitAll()
                     .antMatchers("/product").hasRole("ADMIN")
                     .antMatchers("/product/image/{id}").hasRole("ADMIN")
-                    .antMatchers("/product/page/{page}").hasAnyRole("ADMIN","CUSTOMER")
-                    .antMatchers(HttpMethod.GET,"/product/{id}").permitAll()
                     .antMatchers(HttpMethod.PUT,"/product/{id}").hasRole("ADMIN")
                     .antMatchers(HttpMethod.DELETE,"/product/{id}").hasRole("ADMIN")
-                    .antMatchers("/product/category/{category}").permitAll()
-                    .antMatchers("/product/image/{filename}").permitAll()
+
                     .anyRequest().authenticated()
 
                 .and()
@@ -68,6 +73,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
 
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
