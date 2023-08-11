@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class AuthenticationSuccessResponseDTO {
     private boolean isSuccess;
+    private boolean isCredentialsValid;
     private String message;
     private String jwt;
     private boolean isCustomer;

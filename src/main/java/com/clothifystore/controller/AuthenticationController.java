@@ -73,7 +73,7 @@ public class AuthenticationController {
         boolean isCustomer = userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
 
         return ResponseEntity.ok(
-                new AuthenticationSuccessResponseDTO(true, "Login successful", jwt, isCustomer)
+                new AuthenticationSuccessResponseDTO(true, true, "Login successful", jwt, isCustomer)
         );
     }
 }
