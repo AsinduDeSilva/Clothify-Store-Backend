@@ -102,7 +102,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerOptional.get());
     }
 
-    @GetMapping("/email")
+    @PostMapping("/email")
     public ResponseEntity<?> getCustomerByEmail(@RequestBody GetCustomerByEmailReqestDTO request){
 
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());

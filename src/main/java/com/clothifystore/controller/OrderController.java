@@ -20,6 +20,8 @@ import javax.mail.MessagingException;
 
 
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +76,7 @@ public class OrderController {
             }
         }
 
+        order.setDateAndTime(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
         order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
 

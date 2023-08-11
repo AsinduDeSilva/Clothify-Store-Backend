@@ -104,8 +104,6 @@ public class ProductController {
             return ResponseEntity.badRequest().body(new CrudResponse(false,  productNotFound));
         }
 
-        request.getImage().transferTo(new File(productImagesPath + productID + ".png"));
-
         productRepo.save(new Product(productID, request.getName(), request.getUnitPrice(), request.getLargeQty()
                 , request.getMediumQty(), request.getSmallQty(), request.getCategory(), productID + ".png")
         );

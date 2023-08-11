@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -18,12 +19,13 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int orderID;
-    private String dateAndTime;
+    private LocalDateTime dateAndTime;
     private OrderStatusTypes status;
     private String receiverAddress;
     private String receiverMobileNo;
     private String receiverName;
     private int customerID;
+    private double shippingFee;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "orderID", referencedColumnName = "orderID")
