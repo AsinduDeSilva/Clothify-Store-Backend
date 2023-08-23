@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface OrderRepo extends JpaRepository<Order,Integer> {
 
-    List<Order> findByCustomerID(int customerID);
+    Page<Order> findByCustomerID(int customerID, Pageable pageable);
     Page<Order> findAll(Pageable pageable);
     Page<Order> findAllByStatus(OrderStatusTypes status, Pageable pageable);
 

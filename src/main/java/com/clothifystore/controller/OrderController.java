@@ -11,6 +11,7 @@ import com.clothifystore.repository.OrderRepo;
 import com.clothifystore.repository.ProductRepo;
 import com.clothifystore.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -92,8 +93,6 @@ public class OrderController {
 
     }
 
-
-
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrder(@PathVariable(value = "id")int orderID){
         Optional<Order> orderOptional = orderRepo.findById(orderID);
@@ -103,30 +102,24 @@ public class OrderController {
         return ResponseEntity.ok(new CrudResponse(false, "Order not found"));
     }
 
-    @GetMapping("/page/{page}")
-    public ResponseEntity<?> getAllOrdersByPage(@PathVariable(value = "page")int page){
-
-        Sort sort = Sort.by(Sort.Order.desc("orderID"));
-        Pageable pageable = PageRequest.of(page - 1, 20, sort);
-        return ResponseEntity.ok(orderRepo.findAll(pageable));
-    }
-
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getOrdersByStatus(@PathVariable(value = "status") int status,
                                                @RequestParam(value = "page") int page){
 
         Sort sort = Sort.by(Sort.Order.desc("orderID"));
-        Pageable pageable = PageRequest.of(page - 1, 20, sort);
+        Pageable pageable = PageRequest.of(page - 1, 16, sort);
         switch (status){
             case 0 :
-                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PENDING, pageable));
+                return ResponseEntity.ok(orderRepo.findAll(pageable));
             case 1 :
-                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PROCESSING, pageable));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PENDING, pageable));
             case 2 :
-                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.OUT_FOR_DELIVERY, pageable));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.PROCESSING, pageable));
             case 3 :
-                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.DELIVERED, pageable));
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.OUT_FOR_DELIVERY, pageable));
             case 4 :
+                return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.DELIVERED, pageable));
+            case 5 :
                 return ResponseEntity.ok(orderRepo.findAllByStatus(OrderStatusTypes.CANCELLED, pageable));
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
@@ -134,8 +127,11 @@ public class OrderController {
     }
 
     @GetMapping("/customer/{id}")
-    public ResponseEntity<List<Order>> getOrdersOf(@PathVariable(value = "id")int customerID){
-        return ResponseEntity.ok(orderRepo.findByCustomerID(customerID));
+    public ResponseEntity<Page<Order>> getOrdersOf(@PathVariable(value = "id")int customerID,
+                                                   @RequestParam(value = "page") int page){
+        Sort sort = Sort.by(Sort.Order.desc("orderID"));
+        Pageable pageable = PageRequest.of(page - 1, 10, sort);
+        return ResponseEntity.ok(orderRepo.findByCustomerID(customerID, pageable));
     }
 
     @PutMapping("/{id}")

@@ -60,7 +60,7 @@ public class ProductController {
     public ResponseEntity<?> getAllOrdersByPage(@PathVariable(value = "page")int page){
 
         Sort sort = Sort.by(Sort.Order.desc("productID"));
-        Pageable pageable = PageRequest.of(page - 1, 24, sort);
+        Pageable pageable = PageRequest.of(page - 1, 16, sort);
         return ResponseEntity.ok(productRepo.findAll(pageable));
     }
 
@@ -69,8 +69,10 @@ public class ProductController {
                                                    @RequestParam(value = "page") int page){
 
         Sort sort = Sort.by(Sort.Order.desc("productID"));
-        Pageable pageable = PageRequest.of(page - 1, 24, sort);
+        Pageable pageable = PageRequest.of(page - 1, 16, sort);
         switch (category){
+            case "all":
+                return ResponseEntity.ok(productRepo.findAll(pageable));
             case "men":
                 return ResponseEntity.ok(productRepo.findAllByCategory(ProductCategories.MEN, pageable));
             case "women":
