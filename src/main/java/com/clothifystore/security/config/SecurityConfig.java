@@ -53,12 +53,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
                     .antMatchers("/order").hasRole("CUSTOMER")
                     .antMatchers("/order/customer/{id}").hasRole("CUSTOMER")
-                    .antMatchers("/order/page/{page}").hasRole("ADMIN")
                     .antMatchers("/order/{id}").hasRole("ADMIN")
                     .antMatchers("/order/status/{status}").hasRole("ADMIN")
 
                     .antMatchers("/product/category/{category}").permitAll()
-                    .antMatchers("/product/page/{page}").permitAll()
                     .antMatchers("/product/image/{filename}").permitAll()
                     .antMatchers(HttpMethod.GET,"/product/{id}").permitAll()
                     .antMatchers("/product").hasRole("ADMIN")

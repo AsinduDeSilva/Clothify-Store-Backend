@@ -56,14 +56,6 @@ public class ProductController {
         return ResponseEntity.ok(productOptional.get());
     }
 
-    @GetMapping("/page/{page}")
-    public ResponseEntity<?> getAllOrdersByPage(@PathVariable(value = "page")int page){
-
-        Sort sort = Sort.by(Sort.Order.desc("productID"));
-        Pageable pageable = PageRequest.of(page - 1, 16, sort);
-        return ResponseEntity.ok(productRepo.findAll(pageable));
-    }
-
     @GetMapping("/category/{category}")
     public ResponseEntity<?> getProductsByCategory(@PathVariable(value = "category") String category,
                                                    @RequestParam(value = "page") int page){

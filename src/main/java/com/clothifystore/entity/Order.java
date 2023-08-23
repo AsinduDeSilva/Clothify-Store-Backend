@@ -26,6 +26,7 @@ public class Order {
     private String receiverName;
     private int customerID;
     private double shippingFee;
+    private double total;
 
     @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "orderID", referencedColumnName = "orderID")
