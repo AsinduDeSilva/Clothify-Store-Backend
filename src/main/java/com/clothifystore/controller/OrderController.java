@@ -144,21 +144,38 @@ public class OrderController {
         if(orderOptional.isEmpty()){
             return ResponseEntity.badRequest().body(new CrudResponse(false, "Order not found"));
         }
+        Order order = orderOptional.get();
         switch (status){
-            case 0 : orderOptional.get().setStatus(OrderStatusTypes.PENDING); break;
-            case 1 : orderOptional.get().setStatus(OrderStatusTypes.PROCESSING); break;
-            case 2 : orderOptional.get().setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
-            case 3 : orderOptional.get().setStatus(OrderStatusTypes.DELIVERED); break;
-            case 4 : orderOptional.get().setStatus(OrderStatusTypes.CANCELLED); break;
+            case 0 : order.setStatus(OrderStatusTypes.PENDING); break;
+            case 1 : order.setStatus(OrderStatusTypes.PROCESSING); break;
+            case 2 : order.setStatus(OrderStatusTypes.OUT_FOR_DELIVERY); break;
+            case 3 : order.setStatus(OrderStatusTypes.DELIVERED); break;
+            case 4 :
+                order.setStatus(OrderStatusTypes.CANCELLED);
+                for(OrderDetail orderDetail : order.getOrderDetails()){
+                    Optional<Product> productOptional = productRepo.findById(orderDetail.getProductID());
+                    if(productOptional.isPresent()){
+                        Product product = productOptional.get();
+                        switch (orderDetail.getSize()) {
+                            case SMALL:
+                                product.setSmallQty(product.getSmallQty() + orderDetail.getQuantity()); break;
+                            case MEDIUM:
+                                product.setMediumQty(product.getMediumQty() + orderDetail.getQuantity()); break;
+                            case LARGE:
+                                product.setLargeQty(product.getLargeQty() + orderDetail.getQuantity()); break;
+                        }
+                    }
+                }
+                break;
             default:
                 return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid status"));
         }
-        orderRepo.save(orderOptional.get());
+        orderRepo.save(order);
 
-        Optional<Customer> customerOptional = customerRepo.findById(orderOptional.get().getCustomerID());
+        Optional<Customer> customerOptional = customerRepo.findById(order.getCustomerID());
         if(customerOptional.isPresent()){
             String body = "<h1>Hey there, "+customerOptional.get().getFirstName()+"</h1>"
-                    + "Your order is "+orderOptional.get().getStatus().toString().toLowerCase().replace('_',' ');
+                    + "Your order is "+ order.getStatus().toString().toLowerCase().replace('_',' ');
 
             emailService.sendEmail(customerOptional.get().getUser().getEmail(), "Order Status Updated", body);
         }
