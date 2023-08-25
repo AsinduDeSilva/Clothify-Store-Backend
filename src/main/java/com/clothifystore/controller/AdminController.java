@@ -20,13 +20,18 @@ public class AdminController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @PutMapping()
+    @PutMapping
     public ResponseEntity<CrudResponse> changePassword(@RequestBody ChangePasswordRequestDTO request){
 
         Admin admin1 = adminRepo.findByAdminID(1);
         admin1.getUser().setPassword(passwordEncoder.encode(request.getPassword()));
         adminRepo.save(admin1);
-        return ResponseEntity.ok(new CrudResponse(true, "Admin Updated"));
+        return ResponseEntity.ok(new CrudResponse(true, "Admin Password Changed"));
+    }
+
+    @GetMapping
+    public ResponseEntity<Admin> getAdmin(){
+        return ResponseEntity.ok(adminRepo.findByAdminID(1));
     }
 
 }

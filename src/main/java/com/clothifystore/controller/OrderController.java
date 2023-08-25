@@ -1,6 +1,7 @@
 package com.clothifystore.controller;
 
 import com.clothifystore.dto.response.CrudResponse;
+import com.clothifystore.dto.response.OrderStatsResponseDTO;
 import com.clothifystore.entity.Customer;
 import com.clothifystore.entity.Order;
 import com.clothifystore.entity.OrderDetail;
@@ -21,8 +22,9 @@ import javax.mail.MessagingException;
 
 
 import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,7 +79,7 @@ public class OrderController {
             }
         }
 
-        order.setDateAndTime(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
+        order.setDate(LocalDate.now(ZoneId.of("Asia/Kolkata")));
         order.setStatus(OrderStatusTypes.PENDING);
         orderRepo.save(order);
 
@@ -165,5 +167,54 @@ public class OrderController {
 
     }
 
+    @GetMapping("week")
+    public ResponseEntity<List<Integer>> getTotalOrdersCountOfPast7Days(){
+        List<Integer> orderCountList = new ArrayList<>();
+        for (int i = 7; i > 0; i--){
+            orderCountList.add(orderRepo.countByDate(LocalDate.now().minusDays(i)));
+        }
+        return ResponseEntity.ok(orderCountList);
+    }
+
+    @GetMapping("stats")
+    public ResponseEntity<?> getSalesIncome(){
+        List<Order> ordersOfToday = orderRepo.findByDate(LocalDate.now());
+        List<Order> ordersOfYesterday = orderRepo.findByDate(LocalDate.now().minusDays(1));
+        List<Order> ordersOfLast30Days = orderRepo.findByDateAfter(LocalDate.now().minusMonths(1));
+
+        double incomeOfToday = 0;
+        double incomeOfYesterday = 0;
+        double incomeOfLast30Days = 0;
+
+        for (Order order : ordersOfToday) {
+            if(order.getStatus() == OrderStatusTypes.CANCELLED){
+               continue;
+            }
+            incomeOfToday += order.getTotal();
+        }
+
+        for (Order order : ordersOfYesterday) {
+            if(order.getStatus() == OrderStatusTypes.CANCELLED){
+               continue;
+            }
+            incomeOfYesterday += order.getTotal();
+        }
+
+        for (Order order : ordersOfLast30Days) {
+            if(order.getStatus() == OrderStatusTypes.CANCELLED){
+                continue;
+            }
+            incomeOfLast30Days += order.getTotal();
+        }
+
+        return ResponseEntity.ok(new OrderStatsResponseDTO(
+                incomeOfToday,
+                incomeOfYesterday,
+                incomeOfLast30Days,
+                orderRepo.countByStatus(OrderStatusTypes.PENDING),
+                orderRepo.countByStatus(OrderStatusTypes.PROCESSING),
+                orderRepo.countByStatus(OrderStatusTypes.OUT_FOR_DELIVERY)
+        ));
+    }
 
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int orderID;
-    private LocalDateTime dateAndTime;
+    private LocalDate date;
     private OrderStatusTypes status;
     private String receiverAddress;
     private String receiverMobileNo;
