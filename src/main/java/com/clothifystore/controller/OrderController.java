@@ -136,6 +136,15 @@ public class OrderController {
         return ResponseEntity.ok(orderRepo.findByCustomerID(customerID, pageable));
     }
 
+    @GetMapping("/customer/count/{id}")
+    public ResponseEntity<Integer> getOngoingOrderCountOf(@PathVariable(value = "id") int customerID){
+        List<OrderStatusTypes> orderStatusTypes = new ArrayList<>();
+        orderStatusTypes.add(OrderStatusTypes.DELIVERED);
+        orderStatusTypes.add(OrderStatusTypes.CANCELLED);
+        return ResponseEntity.ok(orderRepo.countByCustomerIDAndStatusNotIn(customerID, orderStatusTypes));
+    }
+
+
     @PutMapping("/{id}")
     public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id") int orderID,
                                                           @RequestParam(value = "status" )int status) throws MessagingException, UnsupportedEncodingException {

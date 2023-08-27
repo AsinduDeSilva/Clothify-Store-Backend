@@ -20,5 +20,6 @@ public interface OrderRepo extends JpaRepository<Order,Integer> {
     List<Order> findByDateAfter(LocalDate localDate);
     List<Order> findByDate(LocalDate localDate);
     Integer countByStatus(OrderStatusTypes orderStatusTypes);
+    Integer countByCustomerIDAndStatusNotIn(int customerID, List<OrderStatusTypes> orderStatusTypes);
 
 }
