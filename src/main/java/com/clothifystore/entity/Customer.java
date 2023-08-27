@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor
@@ -24,6 +25,10 @@ public class Customer {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "userId")
     private User user;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "customerID", referencedColumnName = "customerID")
+    private List<CartItem> cart;
 
 
 

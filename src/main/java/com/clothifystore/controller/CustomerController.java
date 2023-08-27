@@ -6,6 +6,7 @@ import com.clothifystore.dto.request.OTPVerificationRequestDTO;
 import com.clothifystore.dto.request.UpdateCustomerRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
 import com.clothifystore.dto.response.OTPVerificationResponseDTO;
+import com.clothifystore.entity.CartItem;
 import com.clothifystore.entity.Customer;
 import com.clothifystore.entity.User;
 import com.clothifystore.enums.UserRoles;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -147,7 +150,6 @@ public class CustomerController {
         return ResponseEntity.ok(new CrudResponse(true, "Password Changed"));
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<CrudResponse> deleteCustomer(@PathVariable (value = "id")int customerID){
 
@@ -157,4 +159,76 @@ public class CustomerController {
         customerRepo.deleteById(customerID);
         return ResponseEntity.ok(new CrudResponse(true, "Customer Deleted"));
     }
+
+    @PostMapping("cart/{id}")
+    public ResponseEntity<CrudResponse> addToCart(@PathVariable(value = "id") int customerID, @RequestBody CartItem cartItem){
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        Customer customer = customerOptional.get();
+        customer.getCart().add(cartItem);
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Added to cart"));
+    }
+
+    @DeleteMapping("cart/{id}")
+    public ResponseEntity<CrudResponse> removeFromCart(@PathVariable(value = "id") int customerID,
+                                            @RequestBody int[] indexesToRemove){
+
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        Customer customer = customerOptional.get();
+
+        for (int i = indexesToRemove.length - 1; i >= 0; i--) {
+            customer.getCart().remove(indexesToRemove[i]);
+        }
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Cart items removed"));
+    }
+
+    @PutMapping("cart/{id}")
+    public ResponseEntity<CrudResponse> updateCart(@PathVariable(value = "id") int customerID,
+                                                   @RequestParam(value = "index") int index,
+                                                   @RequestBody CartItem cartItem){
+
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        Customer customer = customerOptional.get();
+        customer.getCart().set(index, cartItem);
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Cart updatde"));
+    }
+
+    @DeleteMapping("cart/empty/{id}")
+    public ResponseEntity<CrudResponse> emptyCart(@PathVariable(value = "id") int customerID){
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        Customer customer = customerOptional.get();
+        customer.getCart().clear();
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Cart cleared"));
+    }
+
+    @PostMapping("cart/set/{id}")
+    public ResponseEntity<CrudResponse> setCart(@PathVariable(value = "id") int customerID,
+                                                @RequestBody List<CartItem> cart){
+
+        Optional<Customer> customerOptional = customerRepo.findById(customerID);
+        if(customerOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+        }
+        Customer customer = customerOptional.get();
+        customer.setCart(cart);
+        customerRepo.save(customer);
+        return ResponseEntity.ok(new CrudResponse(true, "Cart changed"));
+    }
+
+
 }
