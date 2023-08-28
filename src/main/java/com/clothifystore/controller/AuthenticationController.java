@@ -1,6 +1,7 @@
 package com.clothifystore.controller;
 
 import com.clothifystore.dto.request.AuthenticationRequestDTO;
+import com.clothifystore.dto.request.AuthenticationWithOTPRequestDTO;
 import com.clothifystore.dto.response.AuthenticationFailedResponseDTO;
 import com.clothifystore.dto.response.AuthenticationSuccessResponseDTO;
 import com.clothifystore.entity.User;
@@ -47,7 +48,8 @@ public class AuthenticationController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping
-    public ResponseEntity<?> authentication(@RequestBody AuthenticationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<?> authenticateWithPassword(@RequestBody AuthenticationRequestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
 
         Optional<User> userOptional = userRepo.findByEmail(request.getEmail());
         if (userOptional.isPresent() && !passwordEncoder.matches(request.getPassword(), userOptional.get().getPassword())){
@@ -76,4 +78,34 @@ public class AuthenticationController {
                 new AuthenticationSuccessResponseDTO(true, true, "Login successful", jwt, isCustomer)
         );
     }
+
+    @PostMapping("/otp")
+    public ResponseEntity<?> authenticateWithOtp(@RequestBody AuthenticationWithOTPRequestDTO request){
+        Optional<User> userOptional = userRepo.findByEmail(request.getEmail());
+        if(userOptional.isEmpty()){
+            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+        }
+        User user = userOptional.get();
+        if(!passwordEncoder.matches(request.getOtp(), user.getOtp())){
+            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+        }
+        if(otpService.isOTPExpired(user)){
+            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, true, "Otp Expired"));
+        }
+
+        user.setOtp(null);
+        user.setOtpExpirationTime(null);
+        userRepo.save(user);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+        String jwt = jwtUtil.generateToken(userDetails);
+        boolean isCustomer = userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CUSTOMER"));
+
+        return ResponseEntity.ok(
+                new AuthenticationSuccessResponseDTO(true, true, "Login successful", jwt, isCustomer)
+        );
+
+    }
+
+
 }
