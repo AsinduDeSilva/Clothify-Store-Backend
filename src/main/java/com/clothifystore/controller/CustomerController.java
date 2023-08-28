@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,6 +92,15 @@ public class CustomerController {
         }
         otpService.sendOTP(customerOptional.get().getUser());
         return ResponseEntity.ok("");
+    }
+
+    @PostMapping("exists")
+    public  ResponseEntity<Boolean> existsByEmail(@RequestBody GetCustomerByEmailReqestDTO request) throws MessagingException, UnsupportedEncodingException {
+        Boolean exists = customerRepo.existsByUser_Email(request.getEmail());
+        if(exists){
+            otpService.sendOTP(userRepo.findByEmail(request.getEmail()).get());
+        }
+        return ResponseEntity.ok().body(exists);
     }
 
     @GetMapping("/{id}")
@@ -229,6 +237,5 @@ public class CustomerController {
         customerRepo.save(customer);
         return ResponseEntity.ok(new CrudResponse(true, "Cart changed"));
     }
-
 
 }
