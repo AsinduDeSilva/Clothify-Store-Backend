@@ -145,6 +145,11 @@ public class CustomerController {
         return ResponseEntity.ok(new CrudResponse(true, "Customer Updated"));
     }
 
+    @PostMapping("list")
+    public ResponseEntity<?> getCustomers(@RequestBody List<Integer> customerIdList){
+        return ResponseEntity.ok(customerRepo.findAllByCustomerIDIn(customerIdList));
+    }
+
     @PutMapping("/password/{id}")
     public ResponseEntity<CrudResponse> changePassword(@PathVariable(value = "id") int customerID,
                                                        @RequestBody ChangePasswordRequestDTO request){
