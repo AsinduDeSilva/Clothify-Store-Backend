@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -127,6 +129,11 @@ public class ProductController {
         productRepo.deleteById(productID);
         new File(productImagesPath + productOptional.get().getImgFileName()).delete();
         return ResponseEntity.ok(new CrudResponse(true, "Product Deleted"));
+    }
+
+    @PostMapping("list")
+    public ResponseEntity<?> getProducts(@RequestBody List<Integer> productIdList){
+        return ResponseEntity.ok(productRepo.findAllByProductIDIn(productIdList));
     }
 
 }
