@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +50,9 @@ public class CustomerController {
     public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer) throws MessagingException, UnsupportedEncodingException {
 
         if(userRepo.existsByEmail(customer.getUser().getEmail())) {
-            return ResponseEntity.badRequest().body(new CrudResponse(false,"Duplicate Data"));
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(new CrudResponse(false,"Duplicate Data"));
         }
         customer.getUser().setEnabled(false);
         customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
@@ -58,7 +61,9 @@ public class CustomerController {
 
         otpService.sendOTP(customer.getUser());
 
-        return ResponseEntity.ok(new CrudResponse(true, "Customer Added"));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new CrudResponse(true, "Customer Added"));
     }
 
     @PostMapping("/verify")
@@ -66,16 +71,22 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         User user = customerOptional.get().getUser();
 
         if(otpService.isOTPExpired(user)){
-            return ResponseEntity.badRequest().body(new OTPVerificationResponseDTO(false, true, "OTP expired"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new OTPVerificationResponseDTO(false, true, "OTP expired"));
         }
 
         if (!otpService.verifyOTP(user, request.getOtp())){
-            return ResponseEntity.badRequest().body(new OTPVerificationResponseDTO(false, false, "Invalid OTP"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new OTPVerificationResponseDTO(false, false, "Invalid OTP"));
         }
         user.setEnabled(true);
         userRepo.save(user);
@@ -84,14 +95,16 @@ public class CustomerController {
     }
 
     @PostMapping("/resend-otp")
-    public ResponseEntity<?> resendOTP(@RequestBody OTPVerificationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<CrudResponse> resendOTP(@RequestBody OTPVerificationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
 
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         otpService.sendOTP(customerOptional.get().getUser());
-        return ResponseEntity.ok("");
+        return ResponseEntity.ok(new CrudResponse(true, "OTP resent"));
     }
 
     @PostMapping("exists")
@@ -108,7 +121,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         return ResponseEntity.ok(customerOptional.get());
     }
@@ -118,7 +133,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findByUserEmail(request.getEmail());
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         return ResponseEntity.ok(customerOptional.get());
     }
@@ -135,7 +152,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         customerOptional.get().setFirstName(reques.getFirstName());
         customerOptional.get().setLastName(reques.getLastName());
@@ -156,7 +175,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         customerOptional.get().getUser().setPassword(passwordEncoder.encode(request.getPassword()));
         customerRepo.save(customerOptional.get());
@@ -167,7 +188,9 @@ public class CustomerController {
     public ResponseEntity<CrudResponse> deleteCustomer(@PathVariable (value = "id")int customerID){
 
         if(!customerRepo.existsById(customerID)){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         customerRepo.deleteById(customerID);
         return ResponseEntity.ok(new CrudResponse(true, "Customer Deleted"));
@@ -177,12 +200,16 @@ public class CustomerController {
     public ResponseEntity<CrudResponse> addToCart(@PathVariable(value = "id") int customerID, @RequestBody CartItem cartItem){
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         Customer customer = customerOptional.get();
         customer.getCart().add(cartItem);
         customerRepo.save(customer);
-        return ResponseEntity.ok(new CrudResponse(true, "Added to cart"));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new CrudResponse(true, "Added to cart"));
     }
 
     @DeleteMapping("cart/{id}")
@@ -191,7 +218,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         Customer customer = customerOptional.get();
 
@@ -209,7 +238,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         Customer customer = customerOptional.get();
         customer.getCart().set(index, cartItem);
@@ -221,7 +252,9 @@ public class CustomerController {
     public ResponseEntity<CrudResponse> emptyCart(@PathVariable(value = "id") int customerID){
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         Customer customer = customerOptional.get();
         customer.getCart().clear();
@@ -235,7 +268,9 @@ public class CustomerController {
 
         Optional<Customer> customerOptional = customerRepo.findById(customerID);
         if(customerOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, customerNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, customerNotFound));
         }
         Customer customer = customerOptional.get();
         customer.setCart(cart);

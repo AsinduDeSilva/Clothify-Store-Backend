@@ -53,7 +53,9 @@ public class AuthenticationController {
 
         Optional<User> userOptional = userRepo.findByEmail(request.getEmail());
         if (userOptional.isPresent() && !passwordEncoder.matches(request.getPassword(), userOptional.get().getPassword())){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
         }
 
         try{
@@ -61,12 +63,14 @@ public class AuthenticationController {
                     new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword())
             );
         }catch(BadCredentialsException e){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
         }catch(DisabledException e){
             otpService.sendOTP(userOptional.get());
-            return ResponseEntity.status(HttpStatus.LOCKED).body(
-                    new AuthenticationFailedResponseDTO(false, true, "Need to verify account")
-            );
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, true, "Need to verify account"));
         }
 
 
@@ -83,14 +87,20 @@ public class AuthenticationController {
     public ResponseEntity<?> authenticateWithOtp(@RequestBody AuthenticationWithOTPRequestDTO request){
         Optional<User> userOptional = userRepo.findByEmail(request.getEmail());
         if(userOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
         }
         User user = userOptional.get();
         if(!passwordEncoder.matches(request.getOtp(), user.getOtp())){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, false, "Invalid Credentials"));
         }
         if(otpService.isOTPExpired(user)){
-            return ResponseEntity.badRequest().body(new AuthenticationFailedResponseDTO(false, true, "Otp Expired"));
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthenticationFailedResponseDTO(false, true, "Otp Expired"));
         }
 
         user.setOtp(null);

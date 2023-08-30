@@ -44,7 +44,10 @@ public class ProductController {
                 , request.getMediumQty(), request.getSmallQty(), request.getCategory(), productID+".png")
         );
 
-        return ResponseEntity.ok(new CrudResponse(true, "Product Added"));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new CrudResponse(true, "Product Added")
+        );
     }
 
     @GetMapping("/{id}")
@@ -52,7 +55,9 @@ public class ProductController {
 
         Optional<Product> productOptional = productRepo.findById(productID);
         if(productOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, productNotFound));
         }
         return ResponseEntity.ok(productOptional.get());
     }
@@ -84,7 +89,10 @@ public class ProductController {
 
         try {
             byte[] image = Files.readAllBytes(new File(productImagesPath+filename).toPath());
-            return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.valueOf("image/png")).body(image);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(MediaType.valueOf("image/png"))
+                    .body(image);
         } catch (IOException e) {
             return ResponseEntity.badRequest().body(new CrudResponse(false, "Invalid filename"));
         }
@@ -96,7 +104,9 @@ public class ProductController {
 
         Optional<Product> productOptional = productRepo.findById(productID);
         if (productOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body(new CrudResponse(false,  productNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, productNotFound));
         }
 
         productRepo.save(new Product(productID, request.getName(), request.getUnitPrice(), request.getLargeQty()
@@ -111,7 +121,9 @@ public class ProductController {
                                                            @RequestParam(value = "image") MultipartFile image) throws IOException {
 
         if (!productRepo.existsById(productID)) {
-            return ResponseEntity.badRequest().body(new CrudResponse(false,  productNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, productNotFound));
         }
 
         image.transferTo(new File(productImagesPath + productID + ".png"));
@@ -123,7 +135,9 @@ public class ProductController {
 
         Optional<Product> productOptional = productRepo.findById(productID);
         if(productOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, productNotFound));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, productNotFound));
         }
         productRepo.deleteById(productID);
         new File(productImagesPath + productOptional.get().getImgFileName()).delete();

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.mail.MessagingException;
@@ -51,9 +52,9 @@ public class OrderController {
 
             Optional<Product> productOptional = productRepo.findById(orderDetail.getProductID());
             if(productOptional.isEmpty()){
-                return ResponseEntity.badRequest().body(
-                        new CrudResponse(false, "Some products not found")
-                );
+                return ResponseEntity
+                        .status(HttpStatus.NOT_FOUND)
+                        .body(new CrudResponse(false, "Some products not found"));
             }
 
             Product product = productOptional.get();
@@ -68,8 +69,7 @@ public class OrderController {
 
             if (restQty < 0) {
                 return ResponseEntity.badRequest().body(
-                        new CrudResponse(false, "Do not have enough stock")
-                );
+                        new CrudResponse(false, "Do not have enough stock"));
             }
 
             switch (orderDetail.getSize()) {
@@ -91,7 +91,9 @@ public class OrderController {
             emailService.sendEmail(customerOptional.get().getUser().getEmail(), "Order Placed", emailBody);
         }
 
-        return ResponseEntity.ok(new CrudResponse(true, "Order placed"));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new CrudResponse(true, "Order placed"));
 
     }
 
@@ -101,7 +103,9 @@ public class OrderController {
         if(orderOptional.isPresent()){
             return ResponseEntity.ok(orderOptional.get());
         }
-        return ResponseEntity.ok(new CrudResponse(false, "Order not found"));
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new CrudResponse(false, "Order not found"));
     }
 
     @GetMapping("/status/{status}")
@@ -151,7 +155,9 @@ public class OrderController {
 
         Optional<Order> orderOptional = orderRepo.findById(orderID);
         if(orderOptional.isEmpty()){
-            return ResponseEntity.badRequest().body(new CrudResponse(false, "Order not found"));
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(new CrudResponse(false, "Order not found"));
         }
         Order order = orderOptional.get();
         switch (status){
