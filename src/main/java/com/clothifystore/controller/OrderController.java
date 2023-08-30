@@ -197,16 +197,16 @@ public class OrderController {
     public ResponseEntity<List<Integer>> getTotalOrdersCountOfPast7Days(){
         List<Integer> orderCountList = new ArrayList<>();
         for (int i = 7; i > 0; i--){
-            orderCountList.add(orderRepo.countByDate(LocalDate.now().minusDays(i)));
+            orderCountList.add(orderRepo.countByDate(LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(i)));
         }
         return ResponseEntity.ok(orderCountList);
     }
 
     @GetMapping("stats")
     public ResponseEntity<?> getSalesIncome(){
-        List<Order> ordersOfToday = orderRepo.findByDate(LocalDate.now());
-        List<Order> ordersOfYesterday = orderRepo.findByDate(LocalDate.now().minusDays(1));
-        List<Order> ordersOfLast30Days = orderRepo.findByDateAfter(LocalDate.now().minusMonths(1));
+        List<Order> ordersOfToday = orderRepo.findByDate(LocalDate.now(ZoneId.of("Asia/Kolkata")));
+        List<Order> ordersOfYesterday = orderRepo.findByDate(LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(1));
+        List<Order> ordersOfLast30Days = orderRepo.findByDateAfter(LocalDate.now(ZoneId.of("Asia/Kolkata")).minusMonths(1));
 
         double incomeOfToday = 0;
         double incomeOfYesterday = 0;
