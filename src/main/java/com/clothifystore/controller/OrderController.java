@@ -2,6 +2,7 @@ package com.clothifystore.controller;
 
 import com.clothifystore.dto.response.CrudResponse;
 import com.clothifystore.dto.response.OrderStatsResponseDTO;
+import com.clothifystore.dto.response.WeekOrderDataResponseDTO;
 import com.clothifystore.entity.Customer;
 import com.clothifystore.entity.Order;
 import com.clothifystore.entity.OrderDetail;
@@ -200,12 +201,16 @@ public class OrderController {
     }
 
     @GetMapping("week")
-    public ResponseEntity<List<Integer>> getTotalOrdersCountOfPast7Days(){
+    public ResponseEntity<WeekOrderDataResponseDTO> getTotalOrdersCountOfPast7Days(){
         List<Integer> orderCountList = new ArrayList<>();
+        List<String> dateList = new ArrayList<>();
         for (int i = 7; i > 0; i--){
-            orderCountList.add(orderRepo.countByDate(LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(i)));
+            LocalDate localDate = LocalDate.now(ZoneId.of("Asia/Kolkata")).minusDays(i);
+            dateList.add(localDate.toString().substring(5, 10));
+            orderCountList.add(orderRepo.countByDate(localDate));
+
         }
-        return ResponseEntity.ok(orderCountList);
+        return ResponseEntity.ok(new WeekOrderDataResponseDTO(orderCountList, dateList));
     }
 
     @GetMapping("stats")
