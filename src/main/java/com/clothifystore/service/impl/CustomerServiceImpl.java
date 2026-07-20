@@ -2,8 +2,12 @@ package com.clothifystore.service.impl;
 
 import com.clothifystore.service.CustomerService;
 import com.clothifystore.service.OTPService;
+import com.clothifystore.dto.request.CartItemRequestDTO;
 import com.clothifystore.dto.request.ChangePasswordRequestDTO;
+import com.clothifystore.dto.request.CustomerRegistrationRequestDTO;
 import com.clothifystore.dto.request.UpdateCustomerRequestDTO;
+import com.clothifystore.dto.response.CartItemResponseDTO;
+import com.clothifystore.dto.response.CustomerResponseDTO;
 import com.clothifystore.entity.CartItem;
 import com.clothifystore.entity.Customer;
 import com.clothifystore.entity.User;
@@ -13,42 +17,73 @@ import com.clothifystore.exception.InvalidRequestException;
 import com.clothifystore.exception.ResourceNotFoundException;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.UserRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeMap;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CustomerServiceImpl implements CustomerService {
 
-    @Autowired
-    private CustomerRepo customerRepo;
+    private final CustomerRepo customerRepo;
+    private final UserRepo userRepo;
+    private final PasswordEncoder passwordEncoder;
+    private final OTPService otpService;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private UserRepo userRepo;
+    @PostConstruct
+    private void configureModelMapper() {
+        // Map Customer -> CustomerResponseDTO: pull email from nested User
+        TypeMap<Customer, CustomerResponseDTO> typeMap =
+                modelMapper.createTypeMap(Customer.class, CustomerResponseDTO.class);
+        typeMap.addMapping(src -> src.getUser().getEmail(), CustomerResponseDTO::setEmail);
+    }
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    // ── Mapping helpers ───────────────────────────────────────────────────────
 
-    @Autowired
-    private OTPService otpService;
+    private CustomerResponseDTO toDTO(Customer customer) {
+        return modelMapper.map(customer, CustomerResponseDTO.class);
+    }
 
-    public void addCustomer(Customer customer) throws MessagingException, UnsupportedEncodingException {
-        if (userRepo.existsByEmail(customer.getUser().getEmail())) {
+    private CartItem toEntity(CartItemRequestDTO dto) {
+        return modelMapper.map(dto, CartItem.class);
+    }
+
+    // ── Write operations ──────────────────────────────────────────────────────
+
+    public void addCustomer(CustomerRegistrationRequestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
+
+        if (userRepo.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Duplicate Data");
         }
-        customer.getUser().setEnabled(false);
-        customer.getUser().setRole(UserRoles.ROLE_CUSTOMER);
-        customer.getUser().setPassword(passwordEncoder.encode(customer.getUser().getPassword()));
-        customerRepo.save(customer);
 
-        otpService.sendOTP(customer.getUser());
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(UserRoles.ROLE_CUSTOMER);
+        user.setEnabled(false);
+
+        Customer customer = new Customer();
+        customer.setFirstName(request.getFirstName());
+        customer.setLastName(request.getLastName());
+        customer.setAddress(request.getAddress());
+        customer.setMobileNo(request.getMobileNo());
+        customer.setUser(user);
+
+        customerRepo.save(customer);
+        otpService.sendOTP(user);
     }
 
     public void verifyCustomer(String email, String otp) {
@@ -60,7 +95,6 @@ public class CustomerServiceImpl implements CustomerService {
         if (otpService.isOTPExpired(user)) {
             throw new InvalidRequestException("OTP expired");
         }
-
         if (!otpService.verifyOTP(user, otp)) {
             throw new InvalidRequestException("Invalid OTP");
         }
@@ -82,21 +116,6 @@ public class CustomerServiceImpl implements CustomerService {
         return exists;
     }
 
-    public Customer getCustomer(int customerID) {
-        return customerRepo.findById(customerID)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-    }
-
-    public Customer getCustomerByEmail(String email) {
-        return customerRepo.findByUserEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
-    }
-
-    public Page<Customer> getAllCustomers(int page) {
-        Pageable pageable = PageRequest.of(page - 1, 20);
-        return customerRepo.findAll(pageable);
-    }
-
     public void updateCustomer(int customerID, UpdateCustomerRequestDTO request) {
         Customer customer = customerRepo.findById(customerID)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
@@ -106,10 +125,6 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setAddress(request.getAddress());
         customer.setMobileNo(request.getMobileNo());
         customerRepo.save(customer);
-    }
-
-    public List<Customer> getCustomers(List<Integer> customerIdList) {
-        return customerRepo.findAllByCustomerIDIn(customerIdList);
     }
 
     public void changePassword(int customerID, ChangePasswordRequestDTO request) {
@@ -127,11 +142,39 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepo.deleteById(customerID);
     }
 
-    public void addToCart(int customerID, CartItem cartItem) {
+    // ── Read operations ───────────────────────────────────────────────────────
+
+    public CustomerResponseDTO getCustomer(int customerID) {
+        Customer customer = customerRepo.findById(customerID)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+        return toDTO(customer);
+    }
+
+    public CustomerResponseDTO getCustomerByEmail(String email) {
+        Customer customer = customerRepo.findByUserEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+        return toDTO(customer);
+    }
+
+    public Page<CustomerResponseDTO> getAllCustomers(int page) {
+        Pageable pageable = PageRequest.of(page - 1, 20);
+        return customerRepo.findAll(pageable).map(this::toDTO);
+    }
+
+    public List<CustomerResponseDTO> getCustomers(List<Integer> customerIdList) {
+        return customerRepo.findAllByCustomerIDIn(customerIdList)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ── Cart operations ───────────────────────────────────────────────────────
+
+    public void addToCart(int customerID, CartItemRequestDTO cartItemDTO) {
         Customer customer = customerRepo.findById(customerID)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        customer.getCart().add(cartItem);
+        customer.getCart().add(toEntity(cartItemDTO));
         customerRepo.save(customer);
     }
 
@@ -145,11 +188,11 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepo.save(customer);
     }
 
-    public void updateCart(int customerID, int index, CartItem cartItem) {
+    public void updateCart(int customerID, int index, CartItemRequestDTO cartItemDTO) {
         Customer customer = customerRepo.findById(customerID)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        customer.getCart().set(index, cartItem);
+        customer.getCart().set(index, toEntity(cartItemDTO));
         customerRepo.save(customer);
     }
 
@@ -161,10 +204,13 @@ public class CustomerServiceImpl implements CustomerService {
         customerRepo.save(customer);
     }
 
-    public void setCart(int customerID, List<CartItem> cart) {
+    public void setCart(int customerID, List<CartItemRequestDTO> cartDTOs) {
         Customer customer = customerRepo.findById(customerID)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
+        List<CartItem> cart = cartDTOs.stream()
+                .map(this::toEntity)
+                .collect(Collectors.toList());
         customer.setCart(cart);
         customerRepo.save(customer);
     }

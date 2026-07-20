@@ -8,7 +8,7 @@ import com.clothifystore.dto.response.AuthenticationSuccessResponseDTO;
 import com.clothifystore.entity.User;
 import com.clothifystore.repository.UserRepo;
 import com.clothifystore.security.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -23,25 +23,20 @@ import javax.mail.MessagingException;
 import java.io.UnsupportedEncodingException;
 
 @Service
+@RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private OTPService otpService;
+    private final OTPService otpService;
 
-    @Autowired
-    private UserRepo userRepo;
+    private final UserRepo userRepo;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthenticationSuccessResponseDTO authenticateWithPassword(AuthenticationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
 

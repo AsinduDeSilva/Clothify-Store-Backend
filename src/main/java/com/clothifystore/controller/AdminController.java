@@ -1,19 +1,19 @@
 package com.clothifystore.controller;
 
 import com.clothifystore.dto.request.ChangePasswordRequestDTO;
+import com.clothifystore.dto.response.AdminResponseDTO;
 import com.clothifystore.dto.response.CrudResponse;
-import com.clothifystore.entity.Admin;
 import com.clothifystore.service.AdminService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
-    @Autowired
-    private AdminService adminService;
+    private final AdminService adminService;
 
     @PutMapping
     public ResponseEntity<CrudResponse> changePassword(@RequestBody ChangePasswordRequestDTO request) {
@@ -22,7 +22,7 @@ public class AdminController {
     }
 
     @GetMapping
-    public ResponseEntity<Admin> getAdmin() {
+    public ResponseEntity<AdminResponseDTO> getAdmin() {
         return ResponseEntity.ok(adminService.getAdmin());
     }
 }

@@ -8,7 +8,7 @@ import com.clothifystore.enums.ProductCategories;
 import com.clothifystore.exception.InvalidRequestException;
 import com.clothifystore.exception.ResourceNotFoundException;
 import com.clothifystore.repository.ProductRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,13 +23,13 @@ import java.nio.file.Files;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     @Value("${product.images.path}")
     private String productImagesPath;
 
-    @Autowired
-    private ProductRepo productRepo;
+    private final ProductRepo productRepo;
 
     public void addProduct(ProductRequestDTO request) throws IOException {
         int productID = productRepo.save(new Product()).getProductID();

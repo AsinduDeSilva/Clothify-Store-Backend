@@ -3,6 +3,10 @@ package com.clothifystore.service.impl;
 import com.clothifystore.service.EmailService;
 import com.clothifystore.service.OrderService;
 
+import com.clothifystore.dto.request.OrderDetailRequestDTO;
+import com.clothifystore.dto.request.OrderRequestDTO;
+import com.clothifystore.dto.response.OrderDetailResponseDTO;
+import com.clothifystore.dto.response.OrderResponseDTO;
 import com.clothifystore.dto.response.OrderStatsResponseDTO;
 import com.clothifystore.dto.response.WeekOrderDataResponseDTO;
 import com.clothifystore.entity.Order;
@@ -15,7 +19,8 @@ import com.clothifystore.exception.ResourceNotFoundException;
 import com.clothifystore.repository.CustomerRepo;
 import com.clothifystore.repository.OrderRepo;
 import com.clothifystore.repository.ProductRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,23 +33,44 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private OrderRepo orderRepo;
+    private final OrderRepo orderRepo;
+    private final ProductRepo productRepo;
+    private final CustomerRepo customerRepo;
+    private final EmailService emailService;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private ProductRepo productRepo;
+    // ── Mapping helpers ───────────────────────────────────────────────────────
 
-    @Autowired
-    private CustomerRepo customerRepo;
+    private Order toEntity(OrderRequestDTO dto) {
+        Order order = new Order();
+        order.setCustomerID(dto.getCustomerID());
+        order.setReceiverName(dto.getReceiverName());
+        order.setReceiverAddress(dto.getReceiverAddress());
+        order.setReceiverMobileNo(dto.getReceiverMobileNo());
+        order.setShippingFee(dto.getShippingFee());
+        order.setTotal(dto.getTotal());
 
-    @Autowired
-    private EmailService emailService;
+        List<OrderDetail> details = dto.getOrderDetails().stream()
+                .map(d -> modelMapper.map(d, OrderDetail.class))
+                .collect(Collectors.toList());
+        order.setOrderDetails(details);
+        return order;
+    }
 
-    public void addOrder(Order order) throws MessagingException, UnsupportedEncodingException {
+    private OrderResponseDTO toDTO(Order order) {
+        return modelMapper.map(order, OrderResponseDTO.class);
+    }
+
+    // ── Write operations ──────────────────────────────────────────────────────
+
+    public void addOrder(OrderRequestDTO request) throws MessagingException, UnsupportedEncodingException {
+        Order order = toEntity(request);
 
         for (OrderDetail orderDetail : order.getOrderDetails()) {
             Product product = productRepo.findById(orderDetail.getProductID())
@@ -96,45 +122,6 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
-    public Order getOrder(int orderID) {
-        return orderRepo.findById(orderID)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-    }
-
-    public Page<Order> getOrdersByStatus(int status, int page) {
-        Sort sort = Sort.by(Sort.Order.desc("orderID"));
-        Pageable pageable = PageRequest.of(page - 1, 16, sort);
-        switch (status) {
-            case 0:
-                return orderRepo.findAll(pageable);
-            case 1:
-                return orderRepo.findAllByStatus(OrderStatusTypes.PENDING, pageable);
-            case 2:
-                return orderRepo.findAllByStatus(OrderStatusTypes.PROCESSING, pageable);
-            case 3:
-                return orderRepo.findAllByStatus(OrderStatusTypes.OUT_FOR_DELIVERY, pageable);
-            case 4:
-                return orderRepo.findAllByStatus(OrderStatusTypes.DELIVERED, pageable);
-            case 5:
-                return orderRepo.findAllByStatus(OrderStatusTypes.CANCELLED, pageable);
-            default:
-                throw new InvalidRequestException("Invalid status");
-        }
-    }
-
-    public Page<Order> getOrdersOfCustomer(int customerID, int page) {
-        Sort sort = Sort.by(Sort.Order.desc("orderID"));
-        Pageable pageable = PageRequest.of(page - 1, 10, sort);
-        return orderRepo.findByCustomerID(customerID, pageable);
-    }
-
-    public int getOngoingOrderCountOfCustomer(int customerID) {
-        List<OrderStatusTypes> orderStatusTypes = new ArrayList<>();
-        orderStatusTypes.add(OrderStatusTypes.DELIVERED);
-        orderStatusTypes.add(OrderStatusTypes.CANCELLED);
-        return orderRepo.countByCustomerIDAndStatusNotIn(customerID, orderStatusTypes);
-    }
-
     public void updateOrderStatus(int orderID, int status) throws MessagingException, UnsupportedEncodingException {
         Order order = orderRepo.findById(orderID)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -178,7 +165,6 @@ public class OrderServiceImpl implements OrderService {
         customerRepo.findById(order.getCustomerID()).ifPresent(customer -> {
             String body = "<h1>Hey there, " + customer.getFirstName() + "</h1>"
                     + "Your order is " + order.getStatus().toString().toLowerCase().replace('_', ' ');
-
             try {
                 emailService.sendEmail(customer.getUser().getEmail(), "Order Status Updated", body);
             } catch (MessagingException | UnsupportedEncodingException e) {
@@ -186,6 +172,49 @@ public class OrderServiceImpl implements OrderService {
             }
         });
     }
+
+    // ── Read operations ───────────────────────────────────────────────────────
+
+    public OrderResponseDTO getOrder(int orderID) {
+        return toDTO(orderRepo.findById(orderID)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found")));
+    }
+
+    public Page<OrderResponseDTO> getOrdersByStatus(int status, int page) {
+        Sort sort = Sort.by(Sort.Order.desc("orderID"));
+        Pageable pageable = PageRequest.of(page - 1, 16, sort);
+        switch (status) {
+            case 0:
+                return orderRepo.findAll(pageable).map(this::toDTO);
+            case 1:
+                return orderRepo.findAllByStatus(OrderStatusTypes.PENDING, pageable).map(this::toDTO);
+            case 2:
+                return orderRepo.findAllByStatus(OrderStatusTypes.PROCESSING, pageable).map(this::toDTO);
+            case 3:
+                return orderRepo.findAllByStatus(OrderStatusTypes.OUT_FOR_DELIVERY, pageable).map(this::toDTO);
+            case 4:
+                return orderRepo.findAllByStatus(OrderStatusTypes.DELIVERED, pageable).map(this::toDTO);
+            case 5:
+                return orderRepo.findAllByStatus(OrderStatusTypes.CANCELLED, pageable).map(this::toDTO);
+            default:
+                throw new InvalidRequestException("Invalid status");
+        }
+    }
+
+    public Page<OrderResponseDTO> getOrdersOfCustomer(int customerID, int page) {
+        Sort sort = Sort.by(Sort.Order.desc("orderID"));
+        Pageable pageable = PageRequest.of(page - 1, 10, sort);
+        return orderRepo.findByCustomerID(customerID, pageable).map(this::toDTO);
+    }
+
+    public int getOngoingOrderCountOfCustomer(int customerID) {
+        List<OrderStatusTypes> orderStatusTypes = new ArrayList<>();
+        orderStatusTypes.add(OrderStatusTypes.DELIVERED);
+        orderStatusTypes.add(OrderStatusTypes.CANCELLED);
+        return orderRepo.countByCustomerIDAndStatusNotIn(customerID, orderStatusTypes);
+    }
+
+    // ── Stats operations ──────────────────────────────────────────────────────
 
     public WeekOrderDataResponseDTO getTotalOrdersCountOfPast7Days() {
         List<Integer> orderCountList = new ArrayList<>();
@@ -208,24 +237,19 @@ public class OrderServiceImpl implements OrderService {
         double incomeOfLast30Days = 0;
 
         for (Order order : ordersOfToday) {
-            if (order.getStatus() == OrderStatusTypes.CANCELLED) {
-                continue;
+            if (order.getStatus() != OrderStatusTypes.CANCELLED) {
+                incomeOfToday += order.getTotal();
             }
-            incomeOfToday += order.getTotal();
         }
-
         for (Order order : ordersOfYesterday) {
-            if (order.getStatus() == OrderStatusTypes.CANCELLED) {
-                continue;
+            if (order.getStatus() != OrderStatusTypes.CANCELLED) {
+                incomeOfYesterday += order.getTotal();
             }
-            incomeOfYesterday += order.getTotal();
         }
-
         for (Order order : ordersOfLast30Days) {
-            if (order.getStatus() == OrderStatusTypes.CANCELLED) {
-                continue;
+            if (order.getStatus() != OrderStatusTypes.CANCELLED) {
+                incomeOfLast30Days += order.getTotal();
             }
-            incomeOfLast30Days += order.getTotal();
         }
 
         return new OrderStatsResponseDTO(

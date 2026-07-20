@@ -5,7 +5,7 @@ import com.clothifystore.service.OTPService;
 
 import com.clothifystore.entity.User;
 import com.clothifystore.repository.UserRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,16 +15,14 @@ import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
+@RequiredArgsConstructor
 public class OTPServiceImpl implements OTPService {
 
-    @Autowired
-    private EmailService emailService;
+    private final EmailService emailService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private UserRepo userRepo;
+    private final UserRepo userRepo;
 
     private final Random random = new Random();
 

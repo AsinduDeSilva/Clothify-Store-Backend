@@ -1,11 +1,12 @@
 package com.clothifystore.controller;
 
+import com.clothifystore.dto.request.OrderRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
+import com.clothifystore.dto.response.OrderResponseDTO;
 import com.clothifystore.dto.response.OrderStatsResponseDTO;
 import com.clothifystore.dto.response.WeekOrderDataResponseDTO;
-import com.clothifystore.entity.Order;
 import com.clothifystore.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,33 +17,36 @@ import java.io.UnsupportedEncodingException;
 
 @RestController
 @RequestMapping("/order")
+@RequiredArgsConstructor
 public class OrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<CrudResponse> addOrder(@RequestBody Order order) throws MessagingException, UnsupportedEncodingException {
-        orderService.addOrder(order);
+    public ResponseEntity<CrudResponse> addOrder(@RequestBody OrderRequestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
+        orderService.addOrder(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new CrudResponse(true, "Order placed"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getOrder(@PathVariable(value = "id") int orderID) {
+    public ResponseEntity<OrderResponseDTO> getOrder(@PathVariable(value = "id") int orderID) {
         return ResponseEntity.ok(orderService.getOrder(orderID));
     }
 
     @GetMapping("/status/{status}")
-    public ResponseEntity<?> getOrdersByStatus(@PathVariable(value = "status") int status,
-                                               @RequestParam(value = "page") int page) {
+    public ResponseEntity<Page<OrderResponseDTO>> getOrdersByStatus(
+            @PathVariable(value = "status") int status,
+            @RequestParam(value = "page") int page) {
         return ResponseEntity.ok(orderService.getOrdersByStatus(status, page));
     }
 
     @GetMapping("/customer/{id}")
-    public ResponseEntity<Page<Order>> getOrdersOf(@PathVariable(value = "id") int customerID,
-                                                   @RequestParam(value = "page") int page) {
+    public ResponseEntity<Page<OrderResponseDTO>> getOrdersOf(
+            @PathVariable(value = "id") int customerID,
+            @RequestParam(value = "page") int page) {
         return ResponseEntity.ok(orderService.getOrdersOfCustomer(customerID, page));
     }
 
@@ -52,8 +56,10 @@ public class OrderController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CrudResponse> updateOrderStatus(@PathVariable(value = "id") int orderID,
-                                                          @RequestParam(value = "status") int status) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<CrudResponse> updateOrderStatus(
+            @PathVariable(value = "id") int orderID,
+            @RequestParam(value = "status") int status)
+            throws MessagingException, UnsupportedEncodingException {
         orderService.updateOrderStatus(orderID, status);
         return ResponseEntity.ok(new CrudResponse(true, "Order Updated"));
     }

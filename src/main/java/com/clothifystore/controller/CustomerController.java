@@ -1,16 +1,17 @@
 package com.clothifystore.controller;
 
+import com.clothifystore.dto.request.CartItemRequestDTO;
 import com.clothifystore.dto.request.ChangePasswordRequestDTO;
+import com.clothifystore.dto.request.CustomerRegistrationRequestDTO;
 import com.clothifystore.dto.request.GetCustomerByEmailReqestDTO;
 import com.clothifystore.dto.request.OTPVerificationRequestDTO;
 import com.clothifystore.dto.request.UpdateCustomerRequestDTO;
 import com.clothifystore.dto.response.CrudResponse;
+import com.clothifystore.dto.response.CustomerResponseDTO;
 import com.clothifystore.dto.response.OTPVerificationResponseDTO;
-import com.clothifystore.entity.CartItem;
-import com.clothifystore.entity.Customer;
 import com.clothifystore.exception.InvalidRequestException;
 import com.clothifystore.service.CustomerService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +23,15 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/customer")
+@RequiredArgsConstructor
 public class CustomerController {
 
-    @Autowired
-    private CustomerService customerService;
+    private final CustomerService customerService;
 
     @PostMapping
-    public ResponseEntity<CrudResponse> addCustomer(@RequestBody Customer customer) throws MessagingException, UnsupportedEncodingException {
-        customerService.addCustomer(customer);
+    public ResponseEntity<CrudResponse> addCustomer(@RequestBody CustomerRegistrationRequestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
+        customerService.addCustomer(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new CrudResponse(true, "Customer Added"));
@@ -49,28 +51,30 @@ public class CustomerController {
     }
 
     @PostMapping("/resend-otp")
-    public ResponseEntity<CrudResponse> resendOTP(@RequestBody OTPVerificationRequestDTO request) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<CrudResponse> resendOTP(@RequestBody OTPVerificationRequestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
         customerService.resendOTP(request.getEmail());
         return ResponseEntity.ok(new CrudResponse(true, "OTP resent"));
     }
 
     @PostMapping("exists")
-    public ResponseEntity<Boolean> existsByEmail(@RequestBody GetCustomerByEmailReqestDTO request) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<Boolean> existsByEmail(@RequestBody GetCustomerByEmailReqestDTO request)
+            throws MessagingException, UnsupportedEncodingException {
         return ResponseEntity.ok().body(customerService.existsByEmail(request.getEmail()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCustomer(@PathVariable(value = "id") int customerID) {
+    public ResponseEntity<CustomerResponseDTO> getCustomer(@PathVariable(value = "id") int customerID) {
         return ResponseEntity.ok(customerService.getCustomer(customerID));
     }
 
     @PostMapping("/email")
-    public ResponseEntity<?> getCustomerByEmail(@RequestBody GetCustomerByEmailReqestDTO request) {
+    public ResponseEntity<CustomerResponseDTO> getCustomerByEmail(@RequestBody GetCustomerByEmailReqestDTO request) {
         return ResponseEntity.ok(customerService.getCustomerByEmail(request.getEmail()));
     }
 
     @GetMapping("/page/{page}")
-    public ResponseEntity<Page<Customer>> getAllCustomers(@PathVariable(value = "page") int page) {
+    public ResponseEntity<Page<CustomerResponseDTO>> getAllCustomers(@PathVariable(value = "page") int page) {
         return ResponseEntity.ok(customerService.getAllCustomers(page));
     }
 
@@ -82,7 +86,7 @@ public class CustomerController {
     }
 
     @PostMapping("list")
-    public ResponseEntity<?> getCustomers(@RequestBody List<Integer> customerIdList) {
+    public ResponseEntity<List<CustomerResponseDTO>> getCustomers(@RequestBody List<Integer> customerIdList) {
         return ResponseEntity.ok(customerService.getCustomers(customerIdList));
     }
 
@@ -100,7 +104,8 @@ public class CustomerController {
     }
 
     @PostMapping("cart/{id}")
-    public ResponseEntity<CrudResponse> addToCart(@PathVariable(value = "id") int customerID, @RequestBody CartItem cartItem) {
+    public ResponseEntity<CrudResponse> addToCart(@PathVariable(value = "id") int customerID,
+                                                  @RequestBody CartItemRequestDTO cartItem) {
         customerService.addToCart(customerID, cartItem);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -117,9 +122,9 @@ public class CustomerController {
     @PutMapping("cart/{id}")
     public ResponseEntity<CrudResponse> updateCart(@PathVariable(value = "id") int customerID,
                                                    @RequestParam(value = "index") int index,
-                                                   @RequestBody CartItem cartItem) {
+                                                   @RequestBody CartItemRequestDTO cartItem) {
         customerService.updateCart(customerID, index, cartItem);
-        return ResponseEntity.ok(new CrudResponse(true, "Cart updatde"));
+        return ResponseEntity.ok(new CrudResponse(true, "Cart updated"));
     }
 
     @DeleteMapping("cart/empty/{id}")
@@ -130,7 +135,7 @@ public class CustomerController {
 
     @PostMapping("cart/set/{id}")
     public ResponseEntity<CrudResponse> setCart(@PathVariable(value = "id") int customerID,
-                                                @RequestBody List<CartItem> cart) {
+                                                @RequestBody List<CartItemRequestDTO> cart) {
         customerService.setCart(customerID, cart);
         return ResponseEntity.ok(new CrudResponse(true, "Cart changed"));
     }

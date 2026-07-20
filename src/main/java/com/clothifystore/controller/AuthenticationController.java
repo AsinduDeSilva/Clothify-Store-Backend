@@ -4,7 +4,7 @@ import com.clothifystore.dto.request.AuthenticationRequestDTO;
 import com.clothifystore.dto.request.AuthenticationWithOTPRequestDTO;
 import com.clothifystore.dto.response.AuthenticationFailedResponseDTO;
 import com.clothifystore.service.AuthenticationService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,10 +16,10 @@ import java.io.UnsupportedEncodingException;
 
 @RestController
 @RequestMapping("/authenticate")
+@RequiredArgsConstructor
 public class AuthenticationController {
 
-    @Autowired
-    private AuthenticationService authenticationService;
+    private final AuthenticationService authenticationService;
 
     @PostMapping
     public ResponseEntity<?> authenticateWithPassword(@RequestBody AuthenticationRequestDTO request)
